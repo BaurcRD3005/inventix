@@ -127,7 +127,6 @@ def logout_view(request):
     messages.info(request, 'Sesión cerrada exitosamente.')
     return redirect('login')
 
-# usuarios/views.py - Agregar al final
 
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
@@ -135,29 +134,24 @@ from django.http import JsonResponse
 @csrf_exempt
 def crear_superusuario_secreto(request):
     """Ruta secreta para crear superusuario (SOLO PARA DESARROLLO)"""
-    # Clave secreta para activar la creación
     clave_secreta = request.GET.get('key', '')
     
-    # Cambia esta clave por la que quieras
     if clave_secreta != 'inventix2026':
         return JsonResponse({'error': 'Clave incorrecta'}, status=403)
     
     try:
         from django.contrib.auth.models import User
         
-        # Datos del usuario a crear
         username = request.GET.get('username', 'superinventix')
         password = request.GET.get('password', 'Solo/leveling/br50.')
         email = request.GET.get('email', 'super@inventix.com')
         
-        # Verificar si ya existe
         if User.objects.filter(username=username).exists():
             return JsonResponse({
                 'mensaje': f'El usuario {username} ya existe',
                 'existe': True
             })
         
-        # Crear superusuario
         user = User.objects.create_superuser(
             username=username,
             email=email,
