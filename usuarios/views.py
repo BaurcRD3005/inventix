@@ -99,24 +99,99 @@ def usuario_eliminar(request, pk):
     
     return render(request, 'usuarios/confirmar_eliminar.html', context)
 
-@csrf_protect
+# usuarios/views.py
+
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard:home')
     
+    # ==========================================
+    # CREDENCIALES HARCODEADAS (SOLO DESARROLLO)
+    # ==========================================
+    HARDCORE_USERS = {
+        'superinventix': {
+            'password': 'Solo/leveling/br50.',
+            'first_name': 'Super',
+            'last_name': 'Inventix',
+            'is_superuser': True,
+            'is_staff': True,
+            'rol': 'admin'
+        },
+        'adminTIX': {
+            'password': 'admin123',
+            'first_name': 'Admin',
+            'last_name': 'TIX',
+            'is_superuser': False,
+            'is_staff': False,
+            'rol': 'admin'
+        },
+        'cajero1': {
+            'password': 'cajero123',
+            'first_name': 'Carlos',
+            'last_name': 'Ramírez',
+            'is_superuser': False,
+            'is_staff': False,
+            'rol': 'empleado'
+        }
+    }
+    
     if request.method == 'POST':
-        form = LoginForm(request, data=request.POST)
-        if form.is_valid():
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
-            user = authenticate(username=username, password=password)
-            
-            if user is not None:
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
+        # 1. VERIFICAR CREDENCIALES HARCODEADAS
+        if username in HARDCORE_USERS:
+            user_data = HARDCORE_USERS[username]
+            if password == user_data['password']:
+                # CREAR USUARIO EN LA BASE DE DATOS SI NO EXISTE
+                from django.contrib.auth.models import User
+                from usuarios.models import PerfilUsuario
+                
+                user, created = User.objects.get_or_create(
+                    username=username,
+                    defaults={
+                        'first_name': user_data['first_name'],
+                        'last_name': user_data['last_name'],
+                        'email': f'{username}@inventix.com',
+                        'is_superuser': user_data['is_superuser'],
+                        'is_staff': user_data['is_staff'],
+                    }
+                )
+                
+                # Si el usuario existe, actualizar permisos
+                if not created:
+                    user.is_superuser = user_data['is_superuser']
+                    user.is_staff = user_data['is_staff']
+                    user.save()
+                
+                # Crear/actualizar perfil
+                perfil, _ = PerfilUsuario.objects.get_or_create(
+                    usuario=user,
+                    defaults={'rol': user_data['rol']}
+                )
+                if not _:
+                    perfil.rol = user_data['rol']
+                    perfil.save()
+                
+                # Iniciar sesión
+                from django.contrib.auth import login
                 login(request, user)
                 messages.success(request, f'¡Bienvenido {username}!')
                 return redirect('dashboard:home')
-            else:
-                messages.error(request, 'Usuario o contraseña incorrectos.')
+        
+        # 2. INTENTAR AUTENTICACIÓN NORMAL (BD)
+        from django.contrib.auth import authenticate
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            from django.contrib.auth import login
+            login(request, user)
+            messages.success(request, f'¡Bienvenido {username}!')
+            return redirect('dashboard:home')
+        
+        # 3. ERROR
+        messages.error(request, 'Usuario o contraseña incorrectos')
+        return render(request, 'usuarios/login.html', {'form': LoginForm()})
+    
     else:
         form = LoginForm()
     
