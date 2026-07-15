@@ -1,39 +1,42 @@
 #!/bin/bash
-# ==========================================
-# SCRIPT DE CONSTRUCCIÓN PARA RENDER
-# ==========================================
-
 echo "🚀 Iniciando build de Inventix..."
-echo "========================================"
 
-# 1. Instalar dependencias
-echo "📦 Instalando dependencias..."
+# Instalar dependencias
 pip install -r requirements.txt
 
-# 2. Crear directorios necesarios
-echo "📁 Creando directorios..."
+# Crear directorios
 mkdir -p staticfiles
 mkdir -p media
 
-# 3. Recolectar archivos estáticos
-echo "🎨 Recolectando archivos estáticos..."
+# Recolectar archivos estáticos
 python manage.py collectstatic --noinput
 
-# 4. Aplicar migraciones a la base de datos
-echo "🗄️ Aplicando migraciones..."
+# Aplicar migraciones
 python manage.py migrate
 
-# 5. Crear superusuario si no existe (opcional)
-echo "👤 Creando superusuario (si no existe)..."
+# Crear superusuario automáticamente con tus credenciales
+echo "👤 Creando superusuario superinventix..."
 python manage.py shell -c "
 from django.contrib.auth.models import User
-if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@inventix.com', 'admin123')
-    print('✅ Superusuario creado: admin/admin123')
-else:
-    print('ℹ️ Superusuario ya existe')
+from django.db import connection
+
+# Verificar si la tabla auth_user existe
+with connection.cursor() as cursor:
+    cursor.execute(\"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name='auth_user')\")
+    exists = cursor.fetchone()[0]
+    
+    if exists:
+        if not User.objects.filter(username='superinventix').exists():
+            User.objects.create_superuser(
+                'superinventix', 
+                'super@inventix.com', 
+                'Solo/leveling/br50.'
+            )
+            print('✅ Superusuario creado: superinventix')
+        else:
+            print('ℹ️ Superusuario superinventix ya existe')
+    else:
+        print('⚠️ La tabla auth_user no existe, las migraciones no se aplicaron correctamente')
 "
 
-echo "========================================"
 echo "✅ Build completado exitosamente!"
-echo "🚀 La aplicación está lista para ejecutarse"
