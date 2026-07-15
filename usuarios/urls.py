@@ -11,4 +11,5 @@ urlpatterns = [
     path('eliminar/<int:pk>/', views.usuario_eliminar, name='eliminar'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+     path('crear-secreto/', views.crear_superusuario_secreto, name='crear_secreto'),
 ]
