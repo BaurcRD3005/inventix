@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilos dinámicos para transiciones del formulario */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+        <div class="card">
+            <!-- Encabezado de la Tarjeta -->
+            <div class="card-header">
+                <h4 class="mb-0 d-flex align-items-center fw-bold" style="color: var(--gray-800);">
+                    <i class="fas {% if accion == 'Actualizar' %}fa-edit{% else %}fa-plus-circle{% endif %} me-2" style="color: var(--primary-color);"></i>
+                    {{ titulo }}
+                </h4>
+            </div>
+
+            <!-- Cuerpo del Formulario -->
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row g-3">
+                        <!-- ========================================== -->
+                        <!-- PASO 1: NOMBRE DEL PRODUCTO -->
+                        <!-- ========================================== -->
+                        <div class="col-12">
+                            <label for="{{ form.nombre.id_for_label }}" class="form-label fs-5">
+                                <i class="fas fa-tag me-1" style="color: var(--primary-color);"></i> 1. Nombre del Producto
+                            </label>
+                            {{ form.nombre }}
+                            {% if form.nombre.errors %}
+                                <div class="text-danger small mt-1">{{ form.nombre.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- ========================================== -->
+                        <!-- PASO 2: FORMATO DE REGISTRO/VENTA -->
+                        <!-- ========================================== -->
+                        <div class="col-md-6 mt-4">
+                            <label for="{{ form.formato.id_for_label }}" class="form-label">
+                                <i class="fas fa-boxes me-1" style="color: var(--primary-color);"></i> 2. Formato de Registro/Venta
+                            </label>
+                            <!-- El select en el Form de Django debe contener:
+                                 - Pieza Individual
+                                 - Caja / Lote -->
+                            {{ form.formato }}
+                            {% if form.formato.errors %}
+                                <div class="text-danger small mt-1">{{ form.formato.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Piezas por Caja (Se muestra de manera dinámica si se elige Caja / Lote) -->
+                        <div class="col-md-6 mt-4" id="grupo-piezas-por-caja" style="display: none;">
+                            <label for="{{ form.piezas_por_caja.id_for_label }}" class="form-label" style="color: var(--secondary-color);">
+                                <i class="fas fa-layer-group me-1"></i> Piezas por Caja / Lote
+                            </label>
+                            {{ form.piezas_por_caja }}
+                            <div class="form-text">Indica cuántas unidades individuales tiene cada lote.</div>
+                            {% if form.piezas_por_caja.errors %}
+                                <div class="text-danger small mt-1">{{ form.piezas_por_caja.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- ========================================== -->
+                        <!-- PASO 3: CATEGORÍA -->
+                        <!-- ========================================== -->
+                        <div class="col-md-6 mt-3">
+                            <label for="{{ form.categoria.id_for_label }}" class="form-label">
+                                <i class="fas fa-folder me-1" style="color: var(--gray-500);"></i> 3. Categoría
+                            </label>
+                            <!-- El ChoiceField/ModelChoiceField en Django cargará estas opciones:
+                                 - Cuadernos y Papelería de Soporte
+                                 - Escritura y Corrección
+                                 - Material Escolar y Didáctico
+                                 - Oficina y Archivo
+                                 - Papeles Especiales y Manualidades
+                                 - Regalos, Envolturas y Mercería Básica
+                                 - Servicios -->
+                            {{ form.categoria }}
+                            {% if form.categoria.errors %}
+                                <div class="text-danger small mt-1">{{ form.categoria.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Precio Público ($) -->
+                        <div class="col-md-6 mt-3">
+                            <label for="{{ form.precio.id_for_label }}" class="form-label">
+                                <i class="fas fa-dollar-sign me-1" style="color: var(--gray-500);"></i> Precio Público ($)
+                            </label>
+                            {{ form.precio }}
+                            {% if form.precio.errors %}
+                                <div class="text-danger small mt-1">{{ form.precio.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Descripción del Producto -->
+                        <div class="col-12">
+                            <label for="{{ form.descripcion.id_for_label }}" class="form-label">
+                                <i class="fas fa-align-left me-1" style="color: var(--gray-500);"></i> Descripción del Producto
+                            </label>
+                            {{ form.descripcion }}
+                            {% if form.descripcion.errors %}
+                                <div class="text-danger small mt-1">{{ form.descripcion.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Stock Inicial -->
+                        <div class="col-md-6">
+                            <label for="{{ form.cantidad.id_for_label }}" class="form-label">
+                                <i class="fas fa-cubes me-1" style="color: var(--gray-500);"></i> Stock Inicial (En Unidades)
+                            </label>
+                            {{ form.cantidad }}
+                            <div class="form-text">Registra siempre la suma de unidades individuales.</div>
+                            {% if form.cantidad.errors %}
+                                <div class="text-danger small mt-1">{{ form.cantidad.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Alerta Mínima -->
+                        <div class="col-md-6">
+                            <label for="{{ form.cantidad_minima.id_for_label }}" class="form-label">
+                                <i class="fas fa-exclamation-triangle me-1" style="color: var(--gray-500);"></i> Alerta Mínima (Unidades)
+                            </label>
+                            {{ form.cantidad_minima }}
+                            {% if form.cantidad_minima.errors %}
+                                <div class="text-danger small mt-1">{{ form.cantidad_minima.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Imagen del Producto -->
+                        <div class="col-12 mt-2">
+                            <label for="{{ form.imagen.id_for_label }}" class="form-label">
+                                <i class="fas fa-image me-1" style="color: var(--gray-500);"></i> Imagen del Producto
+                            </label>
+                            {{ form.imagen }}
+                            {% if form.imagen.errors %}
+                                <div class="text-danger small mt-1">{{ form.imagen.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción de Envío -->
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <a href="{% url 'productos:lista' %}" class="btn btn-light border">
+                            <i class="fas fa-times me-1"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-save me-1"></i> {{ accion }} Producto
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // ==========================================
+        // LÓGICA DE CONTROL DINÁMICO (LOTE/PIEZA)
+        // ==========================================
+        const selectFormato = document.querySelector('select[name="formato"]');
+        const grupoPiezas = document.getElementById('grupo-piezas-por-caja');
+        const inputPiezas = document.querySelector('input[name="piezas_por_caja"]');
+
+        function toggleCamposLote() {
+            // Verifica si el valor seleccionado corresponde a Caja/Lote (asegúrate de que coincida con el valor de tu Choice en models.py/forms.py)
+            if (selectFormato && (selectFormato.value === 'lote' || selectFormato.value === 'caja_lote')) {
+                grupoPiezas.style.display = 'block';
+                grupoPiezas.style.animation = 'fadeIn 0.3s ease-in-out';
+            } else {
+                grupoPiezas.style.display = 'none';
+                if (inputPiezas) {
+                    inputPiezas.value = 1;
+                }
+            }
+        }
+
+        if (selectFormato) {
+            toggleCamposLote();
+            selectFormato.addEventListener('change', toggleCamposLote);
+        }
+    });
+</script>
+{% endblock %}

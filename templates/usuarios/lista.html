@@ -1,0 +1,65 @@
+<!-- templates/usuarios/lista.html -->
+{% extends 'base.html' %}
+
+{% block title %}Usuarios - Inventix{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-users"></i> Usuarios</h1>
+    <a href="{% url 'usuarios:crear' %}" class="btn btn-primary">
+        <i class="fas fa-user-plus"></i> Nuevo Usuario
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                        <tr>
+                            <td><strong>{{ usuario.username }}</strong></td>
+                            <td>{{ usuario.get_full_name|default:"-" }}</td>
+                            <td>{{ usuario.email|default:"-" }}</td>
+                            <td>
+                                <span class="badge {% if usuario.perfil.rol == 'admin' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                    {{ usuario.perfil.get_rol_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if usuario.perfil.activo %}
+                                    <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'usuarios:editar' usuario.id %}" class="btn btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if usuario != user %}
+                                    <a href="{% url 'usuarios:eliminar' usuario.id %}" class="btn btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+<!-- templates/usuarios/confirmar_eliminar.html -->
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Usuario - Inventix{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4><i class="fas fa-exclamation-triangle"></i> Confirmar Eliminación</h4>
+            </div>
+            <div class="card-body">
+                <p class="lead">¿Estás seguro de que deseas eliminar al siguiente usuario?</p>
+                <div class="alert alert-warning">
+                    <strong>{{ user.username }}</strong>
+                    <br>
+                    <small>Rol: {{ user.perfil.get_rol_display }}</small>
+                    <br>
+                    <small>Email: {{ user.email|default:"-" }}</small>
+                </div>
+                <p class="text-danger">
+                    <i class="fas fa-exclamation-circle"></i> Esta acción no se puede deshacer.
+                </p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Sí, eliminar
+                    </button>
+                    <a href="{% url 'usuarios:lista' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancelar
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+<!-- templates/usuarios/login.html -->
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Iniciar Sesión - Inventix{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white text-center">
+                <h3><i class="fas fa-cube"></i> Inventix</h3>
+                <p class="mb-0">Sistema de Control de Inventarios</p>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title text-center mb-4">
+                    <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+                </h5>
+                <form method="post" action="{% url 'usuarios:login' %}">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-sign-in-alt"></i> Ingresar
+                        </button>
+                    </div>
+                </form>
+                <hr>
+                <div class="text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i> 
+                        Contacta al administrador para obtener tus credenciales
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

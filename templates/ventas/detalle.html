@@ -1,0 +1,92 @@
+<!-- templates/ventas/detalle.html -->
+{% extends 'base.html' %}
+
+{% block title %}Detalle de Venta - Inventix{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-receipt"></i> Detalle de Venta</h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Folio:</strong> {{ venta.folio }}</p>
+                        <p><strong>Fecha:</strong> {{ venta.fecha|date:"d/m/Y H:i" }}</p>
+                        <p><strong>Usuario:</strong> {{ venta.usuario.username|default:"-" }}</p>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <p><strong>Subtotal:</strong> ${{ venta.subtotal }}</p>
+                        <h3><strong>Total:</strong> ${{ venta.total }}</h3>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <h5>Productos</h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Precio Unitario</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for detalle in detalles %}
+                                <tr>
+                                    <td>{{ detalle.producto.nombre }}</td>
+                                    <td>{{ detalle.cantidad }}</td>
+                                    <td>${{ detalle.precio_unitario }}</td>
+                                    <td>${{ detalle.subtotal }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if venta.observaciones %}
+                    <div class="alert alert-info">
+                        <strong>Observaciones:</strong> {{ venta.observaciones }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-print"></i> Acciones</h5>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-primary w-100 mb-2" onclick="window.print()">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
+                <a href="{% url 'ventas:lista' %}" class="btn btn-secondary w-100">
+                    <i class="fas fa-arrow-left"></i> Volver a Ventas
+                </a>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header bg-success text-white">
+                <h5><i class="fas fa-check-circle"></i> Venta Completada</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-center">
+                    <i class="fas fa-check-circle text-success fa-3x"></i>
+                </p>
+                <p class="text-center">
+                    La venta se ha registrado exitosamente.<br>
+                    El stock se ha actualizado automáticamente.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

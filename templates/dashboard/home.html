@@ -1,0 +1,553 @@
+<!-- templates/dashboard/home.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Inventix{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+    <div>
+        <span class="badge bg-primary fs-6">
+            <i class="fas fa-user"></i> {{ user.username }}
+        </span>
+        {% if es_super %}
+        <span class="badge bg-danger fs-6 ms-2">
+            <i class="fas fa-crown"></i> Superusuario
+        </span>
+        {% elif es_admin %}
+        <span class="badge bg-success fs-6 ms-2">
+            <i class="fas fa-user-tie"></i> Administrador
+        </span>
+        {% else %}
+        <span class="badge bg-secondary fs-6 ms-2">
+            <i class="fas fa-user"></i> Empleado
+        </span>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- DASHBOARD PARA SUPERUSUARIO (superinventix) -->
+<!-- ========================================== -->
+{% if mostrar_dashboard_super %}
+<div class="alert alert-info">
+    <i class="fas fa-crown"></i> <strong>Superusuario:</strong> Tienes acceso total al sistema incluyendo la administración de Django.
+</div>
+
+<!-- Tarjetas de estadísticas -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card stat-primary">
+            <div class="stat-icon"><i class="fas fa-box"></i></div>
+            <h5>Total Productos</h5>
+            <h2>{{ total_productos }}</h2>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card stat-danger">
+            <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <h5>Stock Bajo</h5>
+            <h2>{{ total_bajos }}</h2>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card stat-success">
+            <div class="stat-icon"><i class="fas fa-shopping-cart"></i></div>
+            <h5>Ventas Hoy</h5>
+            <h2>{{ ventas_hoy }}</h2>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card stat-info">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <h5>Total Usuarios</h5>
+            <h2>{{ total_usuarios }}</h2>
+        </div>
+    </div>
+</div>
+
+<!-- Segunda fila de estadísticas -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="stat-card stat-warning">
+            <div class="stat-icon"><i class="fas fa-tags"></i></div>
+            <h5>Categorías</h5>
+            <h2>{{ total_categorias }}</h2>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="stat-card stat-success">
+            <div class="stat-icon"><i class="fas fa-history"></i></div>
+            <h5>Movimientos Totales</h5>
+            <h2>{{ total_movimientos }}</h2>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="stat-card stat-primary">
+            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+            <h5>Total Ventas</h5>
+            <h2>{{ total_ventas }}</h2>
+        </div>
+    </div>
+</div>
+
+<!-- Resto del dashboard superusuario igual que admin -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5><i class="fas fa-exclamation-circle"></i> Productos con Stock Bajo</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for producto in productos_bajos %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ producto.nombre }}</strong>
+                            <br>
+                            <small class="text-muted">{{ producto.categoria.nombre|default:"Sin categoría" }}</small>
+                        </div>
+                        <span class="badge bg-danger rounded-pill">{{ producto.cantidad }} unidades</span>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-check-circle text-success fa-2x"></i>
+                        <p>No hay productos con stock bajo</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5><i class="fas fa-fire"></i> Productos Más Vendidos</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for producto in productos_mas_vendidos %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <strong>{{ producto.producto__nombre }}</strong>
+                        <span class="badge bg-success rounded-pill">{{ producto.total_vendido }} unidades</span>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-shopping-cart"></i>
+                        <p>No hay ventas registradas</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Movimientos recientes -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5><i class="fas fa-history"></i> Movimientos Recientes</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Producto</th>
+                                <th>Tipo</th>
+                                <th>Cantidad</th>
+                                <th>Usuario</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for movimiento in movimientos_recientes %}
+                            <tr>
+                                <td>{{ movimiento.fecha|date:"d/m/Y H:i" }}</td>
+                                <td>{{ movimiento.producto.nombre }}</td>
+                                <td>
+                                    <span class="badge {% if movimiento.tipo == 'entrada' %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ movimiento.get_tipo_display }}
+                                    </span>
+                                </td>
+                                <td>{{ movimiento.cantidad }}</td>
+                                <td>{{ movimiento.usuario.username|default:"-" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-3">
+                                    <i class="fas fa-inbox"></i>
+                                    <p>No hay movimientos recientes</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <a href="{% url 'productos:movimientos' %}" class="btn btn-outline-secondary w-100">Ver todos los movimientos</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Acciones rápidas para SUPERUSUARIO -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5><i class="fas fa-crown"></i> Acciones de Superusuario</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-sm-6 mb-2">
+                        <a href="{% url 'admin:index' %}" class="btn btn-outline-danger w-100">
+                            <i class="fas fa-user-shield"></i> Panel de Admin
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-2">
+                        <a href="{% url 'productos:crear' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-plus-circle"></i> Nuevo Producto
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-2">
+                        <a href="{% url 'usuarios:lista' %}" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-users"></i> Usuarios
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-2">
+                        <a href="{% url 'productos:movimientos' %}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-history"></i> Movimientos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- DASHBOARD PARA ADMINISTRADOR (adminTIX) -->
+<!-- ========================================== -->
+{% elif mostrar_dashboard_admin %}
+<div class="alert alert-success">
+    <i class="fas fa-user-tie"></i> <strong>Administrador:</strong> Gestiona productos, ventas y usuarios del negocio.
+</div>
+
+<!-- Tarjetas de estadísticas para admin -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card stat-primary">
+            <div class="stat-icon"><i class="fas fa-box"></i></div>
+            <h5>Total Productos</h5>
+            <h2>{{ total_productos }}</h2>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card stat-success">
+            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+            <h5>Disponibles</h5>
+            <h2>{{ productos_disponibles }}</h2>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card stat-danger">
+            <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <h5>Stock Bajo</h5>
+            <h2>{{ total_bajos }}</h2>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card stat-info">
+            <div class="stat-icon"><i class="fas fa-shopping-cart"></i></div>
+            <h5>Ventas Hoy</h5>
+            <h2>{{ ventas_hoy }}</h2>
+        </div>
+    </div>
+</div>
+
+<!-- Productos con stock bajo y categorías -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5><i class="fas fa-exclamation-circle"></i> Productos con Stock Bajo</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for producto in productos_bajos %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ producto.nombre }}</strong>
+                            <br>
+                            <small class="text-muted">{{ producto.categoria.nombre|default:"Sin categoría" }}</small>
+                        </div>
+                        <span class="badge bg-danger rounded-pill">{{ producto.cantidad }} unidades</span>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-check-circle text-success fa-2x"></i>
+                        <p>No hay productos con stock bajo</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                <a href="{% url 'productos:stock_bajo' %}" class="btn btn-outline-danger mt-3 w-100">
+                    Ver todos los productos con stock bajo
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5><i class="fas fa-tags"></i> Categorías con más Productos</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for categoria in categorias_populares %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <strong>{{ categoria.nombre }}</strong>
+                        <span class="badge bg-primary rounded-pill">{{ categoria.num_productos }} productos</span>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-tags"></i>
+                        <p>No hay categorías</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                <a href="{% url 'productos:categoria_lista' %}" class="btn btn-outline-info mt-3 w-100">
+                    Gestionar Categorías
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Movimientos recientes -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5><i class="fas fa-history"></i> Movimientos Recientes</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Producto</th>
+                                <th>Tipo</th>
+                                <th>Cantidad</th>
+                                <th>Usuario</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for movimiento in movimientos_recientes %}
+                            <tr>
+                                <td>{{ movimiento.fecha|date:"d/m/Y H:i" }}</td>
+                                <td>{{ movimiento.producto.nombre }}</td>
+                                <td>
+                                    <span class="badge {% if movimiento.tipo == 'entrada' %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ movimiento.get_tipo_display }}
+                                    </span>
+                                </td>
+                                <td>{{ movimiento.cantidad }}</td>
+                                <td>{{ movimiento.usuario.username|default:"-" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-3">
+                                    <i class="fas fa-inbox"></i>
+                                    <p>No hay movimientos recientes</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <a href="{% url 'productos:movimientos' %}" class="btn btn-outline-secondary w-100">Ver todos los movimientos</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Acciones rápidas para ADMIN -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5><i class="fas fa-rocket"></i> Acciones Rápidas</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2 col-sm-4 mb-2">
+                        <a href="{% url 'productos:crear' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-plus-circle"></i> Nuevo Producto
+                        </a>
+                    </div>
+                    <div class="col-md-2 col-sm-4 mb-2">
+                        <a href="{% url 'productos:categoria_crear' %}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-tag"></i> Nueva Categoría
+                        </a>
+                    </div>
+                    <div class="col-md-2 col-sm-4 mb-2">
+                        <a href="{% url 'productos:entrada' %}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-arrow-down"></i> Registrar Entrada
+                        </a>
+                    </div>
+                    <div class="col-md-2 col-sm-4 mb-2">
+                        <a href="{% url 'usuarios:crear' %}" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-user-plus"></i> Nuevo Usuario
+                        </a>
+                    </div>
+                    <div class="col-md-2 col-sm-4 mb-2">
+                        <a href="{% url 'ventas:crear' %}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-cash-register"></i> Nueva Venta
+                        </a>
+                    </div>
+                    <div class="col-md-2 col-sm-4 mb-2">
+                        <a href="{% url 'productos:stock_bajo' %}" class="btn btn-outline-danger w-100">
+                            <i class="fas fa-exclamation-triangle"></i> Stock Bajo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- DASHBOARD PARA EMPLEADO/CAJERO (cajero1) -->
+<!-- ========================================== -->
+{% elif mostrar_dashboard_empleado %}
+<div class="alert alert-secondary">
+    <i class="fas fa-user"></i> <strong>Empleado:</strong> Registra ventas y consulta productos.
+</div>
+
+<!-- Tarjetas de estadísticas para empleado -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card stat-primary">
+            <div class="stat-icon"><i class="fas fa-box"></i></div>
+            <h5>Total Productos</h5>
+            <h2>{{ total_productos }}</h2>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card stat-success">
+            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+            <h5>Disponibles</h5>
+            <h2>{{ productos_disponibles }}</h2>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card stat-warning">
+            <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <h5>Stock Bajo</h5>
+            <h2>{{ total_stock_bajo }}</h2>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card stat-info">
+            <div class="stat-icon"><i class="fas fa-shopping-cart"></i></div>
+            <h5>Mis Ventas Hoy</h5>
+            <h2>{{ ventas_hoy }}</h2>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5><i class="fas fa-exclamation-triangle"></i> Productos con Stock Bajo</h5>
+                <small>Informa al administrador para reabastecer</small>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for producto in productos_stock_bajo %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ producto.nombre }}</strong>
+                            <br>
+                            <small class="text-muted">{{ producto.categoria.nombre|default:"Sin categoría" }}</small>
+                        </div>
+                        <span class="badge bg-warning text-dark rounded-pill">{{ producto.cantidad }} unidades</span>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-check-circle text-success fa-2x"></i>
+                        <p>No hay productos con stock bajo</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                <a href="{% url 'productos:lista' %}" class="btn btn-outline-warning mt-3 w-100">Ver todos los productos</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5><i class="fas fa-history"></i> Mis Últimas Ventas</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for venta in ultimas_ventas %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ venta.folio }}</strong>
+                            <br>
+                            <small class="text-muted">{{ venta.fecha|date:"d/m/Y H:i" }}</small>
+                        </div>
+                        <span class="badge bg-success rounded-pill">${{ venta.total }}</span>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-shopping-cart"></i>
+                        <p>No has realizado ventas</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                <a href="{% url 'ventas:crear' %}" class="btn btn-success mt-3 w-100">
+                    <i class="fas fa-plus"></i> Nueva Venta
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Acciones rápidas para EMPLEADO -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5><i class="fas fa-rocket"></i> Mis Acciones Rápidas</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 col-sm-6 mb-2">
+                        <a href="{% url 'ventas:crear' %}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-cash-register"></i> Nueva Venta
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-sm-6 mb-2">
+                        <a href="{% url 'productos:lista' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-search"></i> Consultar Productos
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-sm-6 mb-2">
+                        <a href="{% url 'productos:stock_bajo' %}" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-exclamation-triangle"></i> Ver Stock Bajo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

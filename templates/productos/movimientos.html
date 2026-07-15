@@ -1,0 +1,107 @@
+<!-- templates/productos/movimientos.html -->
+{% extends 'base.html' %}
+
+{% block title %}Movimientos - Inventix{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-history"></i> Historial de Movimientos</h1>
+    <div>
+        <a href="{% url 'productos:entrada' %}" class="btn btn-success">
+            <i class="fas fa-arrow-down"></i> Nueva Entrada
+        </a>
+    </div>
+</div>
+
+<!-- Filtro por tipo -->
+<form method="get" class="mb-4">
+    <div class="row">
+        <div class="col-md-4">
+            <select name="tipo" class="form-select" onchange="this.form.submit()">
+                <option value="">Todos los movimientos</option>
+                {% for key, value in tipos %}
+                    <option value="{{ key }}" {% if request.GET.tipo == key %}selected{% endif %}>
+                        {{ value }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</form>
+
+<!-- Tabla de movimientos -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Producto</th>
+                        <th>Tipo</th>
+                        <th>Cantidad</th>
+                        <th>Total</th>
+                        <th>Usuario</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for movimiento in page_obj %}
+                        <tr>
+                            <td>{{ movimiento.fecha|date:"d/m/Y H:i" }}</td>
+                            <td>{{ movimiento.producto.nombre }}</td>
+                            <td>
+                                <span class="badge {% if movimiento.tipo == 'entrada' %}bg-success{% elif movimiento.tipo == 'venta' %}bg-danger{% else %}bg-warning{% endif %}">
+                                    {{ movimiento.get_tipo_display }}
+                                </span>
+                            </td>
+                            <td>{{ movimiento.cantidad }}</td>
+                            <td>{% if movimiento.total %}${{ movimiento.total }}{% else %}-{% endif %}</td>
+                            <td>{{ movimiento.usuario.username|default:"-" }}</td>
+                            <td>{{ movimiento.descripcion|default:"-" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No hay movimientos registrados</p>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Paginación -->
+        {% if page_obj.has_other_pages %}
+            <nav>
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.tipo %}&tipo={{ request.GET.tipo }}{% endif %}">
+                                Anterior
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}{% if request.GET.tipo %}&tipo={{ request.GET.tipo }}{% endif %}">
+                                {{ num }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.tipo %}&tipo={{ request.GET.tipo }}{% endif %}">
+                                Siguiente
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,481 @@
+<!-- templates/ventas/crear_barcode.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Escáner de Código de Barras - Inventix{% endblock %}
+
+{% block extra_css %}
+<style>
+    #scanner-container {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        background: #000;
+        border-radius: 16px;
+        overflow: hidden;
+        position: relative;
+        min-height: 300px;
+    }
+    
+    #scanner-container video {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    
+    #scanner {
+        width: 100%;
+        min-height: 300px;
+    }
+    
+    #scanner-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80%;
+        height: 40%;
+        border: 3px solid #10B981;
+        border-radius: 12px;
+        box-shadow: 0 0 0 4000px rgba(0,0,0,0.3);
+        pointer-events: none;
+        animation: pulse-border 1.5s ease-in-out infinite;
+        z-index: 10;
+    }
+    
+    @keyframes pulse-border {
+        0%, 100% { border-color: #10B981; }
+        50% { border-color: #F59E0B; }
+    }
+    
+    .scanner-controls {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .result-box {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        display: none;
+    }
+    
+    .result-box .badge {
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    .producto-encontrado {
+        border-left: 4px solid #10B981;
+        background: #F0FDF4;
+        padding: 1rem;
+        border-radius: 8px;
+    }
+    
+    .producto-no-encontrado {
+        border-left: 4px solid #F59E0B;
+        background: #FFFBEB;
+        padding: 1rem;
+        border-radius: 8px;
+    }
+    
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: #4B5563;
+    }
+    
+    .info-value {
+        color: #1F2937;
+    }
+    
+    .btn-accion {
+        margin: 5px;
+        min-width: 120px;
+    }
+
+    #manual-input {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4><i class="fas fa-camera"></i> Escáner de Código de Barras</h4>
+            </div>
+            <div class="card-body">
+                <!-- Selector de cámara -->
+                <div class="mb-3">
+                    <label class="form-label">Seleccionar cámara:</label>
+                    <select id="camera-select" class="form-select">
+                        <option value="">Seleccionar cámara...</option>
+                    </select>
+                </div>
+                
+                <!-- Contenedor del escáner -->
+                <div id="scanner-container">
+                    <div id="scanner-overlay"></div>
+                    <div id="scanner"></div>
+                </div>
+                
+                <!-- Controles -->
+                <div class="scanner-controls">
+                    <button id="start-scanner" class="btn btn-success">
+                        <i class="fas fa-play"></i> Iniciar Escáner
+                    </button>
+                    <button id="stop-scanner" class="btn btn-danger">
+                        <i class="fas fa-stop"></i> Detener
+                    </button>
+                    <button id="manual-input-btn" class="btn btn-info">
+                        <i class="fas fa-keyboard"></i> Ingresar Manual
+                    </button>
+                </div>
+                
+                <!-- Entrada manual -->
+                <div id="manual-input" class="mt-3">
+                    <div class="input-group">
+                        <input type="text" id="codigo-manual" class="form-control" 
+                               placeholder="Ingresa el código de barras manualmente" 
+                               autofocus>
+                        <button id="buscar-manual" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Resultado -->
+                <div id="resultado" class="result-box">
+                    <div id="resultado-content"></div>
+                </div>
+                
+                <div class="mt-3">
+                    <a href="{% url 'ventas:crear' %}" class="btn btn-secondary w-100">
+                        <i class="fas fa-arrow-left"></i> Volver a Ventas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- QuaggaJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js">
+</script>
+
+<script>
+    let scannerRunning = false;
+
+    // ==========================================
+    // CONFIGURACIÓN DE CÁMARAS
+    // ==========================================
+    async function getCameras() {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            const select = document.getElementById('camera-select');
+            select.innerHTML = '<option value="">Seleccionar cámara...</option>';
+            
+            if (videoDevices.length === 0) {
+                select.innerHTML = '<option value="">No se encontraron cámaras</option>';
+                return;
+            }
+            
+            videoDevices.forEach((device, index) => {
+                const option = document.createElement('option');
+                option.value = device.deviceId;
+                option.text = device.label || `Cámara ${index + 1}`;
+                select.appendChild(option);
+            });
+            
+            // Seleccionar cámara trasera por defecto
+            const backCamera = videoDevices.find(d => 
+                d.label.toLowerCase().includes('back') || 
+                d.label.toLowerCase().includes('trasera')
+            );
+            if (backCamera) {
+                select.value = backCamera.deviceId;
+            } else if (videoDevices.length > 0) {
+                select.value = videoDevices[0].deviceId;
+            }
+        } catch (error) {
+            console.error('Error al obtener cámaras:', error);
+            document.getElementById('camera-select').innerHTML = '<option value="">Error al acceder a la cámara</option>';
+        }
+    }
+
+    // ==========================================
+    // INICIAR ESCÁNER
+    // ==========================================
+    function startScanner() {
+        const cameraId = document.getElementById('camera-select').value;
+        if (!cameraId) {
+            alert('Por favor selecciona una cámara');
+            return;
+        }
+        
+        if (scannerRunning) {
+            stopScanner();
+        }
+        
+        const resultadoDiv = document.getElementById('resultado');
+        resultadoDiv.style.display = 'none';
+        
+        Quagga.init({
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: document.querySelector('#scanner'),
+                constraints: {
+                    deviceId: cameraId,
+                    width: { min: 640 },
+                    height: { min: 480 },
+                    facingMode: "environment"
+                },
+            },
+            decoder: {
+                readers: [
+                    "code_128_reader",
+                    "ean_reader",
+                    "ean_8_reader",
+                    "code_39_reader",
+                    "code_39_vin_reader",
+                    "codabar_reader",
+                    "upc_reader",
+                    "upc_e_reader",
+                    "i2of5_reader"
+                ]
+            },
+            locate: true,
+            numOfWorkers: 4,
+        }, function(err) {
+            if (err) {
+                console.error('Error al iniciar Quagga:', err);
+                alert('Error al iniciar el escáner: ' + err.message);
+                return;
+            }
+            Quagga.start();
+            scannerRunning = true;
+            document.getElementById('start-scanner').disabled = true;
+            document.getElementById('stop-scanner').disabled = false;
+        });
+        
+        Quagga.onDetected(function(result) {
+            const code = result.codeResult.code;
+            if (code) {
+                procesarCodigo(code);
+                if (navigator.vibrate) {
+                    navigator.vibrate(200);
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // DETENER ESCÁNER
+    // ==========================================
+    function stopScanner() {
+        if (scannerRunning) {
+            try {
+                Quagga.stop();
+            } catch(e) {
+                console.log('Error al detener Quagga:', e);
+            }
+            scannerRunning = false;
+            document.getElementById('start-scanner').disabled = false;
+            document.getElementById('stop-scanner').disabled = true;
+        }
+    }
+
+    // ==========================================
+    // PROCESAR CÓDIGO DE BARRAS
+    // ==========================================
+    function procesarCodigo(codigo) {
+        const resultadoDiv = document.getElementById('resultado');
+        const contentDiv = document.getElementById('resultado-content');
+        
+        resultadoDiv.style.display = 'block';
+        contentDiv.innerHTML = `
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Buscando...</span>
+                </div>
+                <p class="mt-2">Buscando producto con código: <strong>${codigo}</strong></p>
+            </div>
+        `;
+        
+        stopScanner();
+        
+        fetch(`/productos/api/buscar-barcode/?codigo=${encodeURIComponent(codigo)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    contentDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h5><i class="fas fa-check-circle"></i> Producto encontrado</h5>
+                        </div>
+                        <div class="producto-encontrado">
+                            <h4><strong>${data.nombre}</strong></h4>
+                            <div class="row mt-3">
+                                <div class="col-6"><strong>Código:</strong></div>
+                                <div class="col-6"><code>${data.codigo_barras}</code></div>
+                                <div class="col-6"><strong>Precio:</strong></div>
+                                <div class="col-6"><strong>$${data.precio}</strong></div>
+                                <div class="col-6"><strong>Stock:</strong></div>
+                                <div class="col-6">
+                                    <span class="badge ${data.cantidad <= 5 ? 'bg-danger' : 'bg-success'}">
+                                        ${data.cantidad} unidades
+                                    </span>
+                                </div>
+                                <div class="col-6"><strong>Categoría:</strong></div>
+                                <div class="col-6">${data.categoria}</div>
+                            </div>
+                            ${data.cantidad <= 5 ? `
+                            <div class="alert alert-warning mt-2">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>¡Stock bajo!</strong> Solo quedan ${data.cantidad} unidades
+                            </div>` : ''}
+                        </div>
+                        <hr>
+                        <div class="row mt-2">
+                            <div class="col-6">
+                                <button onclick="agregarAVenta(${data.id})" class="btn btn-success w-100">
+                                    <i class="fas fa-cart-plus"></i> Agregar a Venta
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button onclick="verProducto(${data.id})" class="btn btn-info w-100">
+                                    <i class="fas fa-eye"></i> Ver Detalle
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <button onclick="procesarCodigo('${codigo}')" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-sync"></i> Escanear otro
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    contentDiv.innerHTML = `
+                        <div class="alert alert-warning">
+                            <h5><i class="fas fa-exclamation-circle"></i> Producto no encontrado</h5>
+                            <p>${data.message || 'El producto no existe en el sistema'}</p>
+                        </div>
+                        <div class="producto-no-encontrado text-center">
+                            <i class="fas fa-barcode fa-2x text-warning"></i>
+                            <p class="mt-2">Código: <code>${codigo}</code></p>
+                            <button onclick="registrarProducto('${codigo}')" class="btn btn-warning">
+                                <i class="fas fa-plus"></i> Registrar nuevo producto
+                            </button>
+                        </div>
+                        <div class="mt-2">
+                            <button onclick="procesarCodigo('${codigo}')" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-sync"></i> Intentar de nuevo
+                            </button>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                contentDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5><i class="fas fa-exclamation-circle"></i> Error de conexión</h5>
+                        <p>${error.message || 'Error al buscar el producto'}</p>
+                        <button onclick="procesarCodigo('${codigo}')" class="btn btn-outline-danger mt-2">
+                            <i class="fas fa-sync"></i> Reintentar
+                        </button>
+                    </div>
+                `;
+            });
+    }
+
+    // ==========================================
+    // FUNCIONES DE ACCIÓN
+    // ==========================================
+    function agregarAVenta(productoId) {
+        window.location.href = `/ventas/crear/?producto=${productoId}`;
+    }
+
+    function verProducto(productoId) {
+        window.location.href = `/productos/editar/${productoId}/`;
+    }
+
+    function registrarProducto(codigo) {
+        window.location.href = `/productos/crear/?codigo=${encodeURIComponent(codigo)}&from_scanner=1`;
+    }
+
+    // ==========================================
+    // ENTRADA MANUAL
+    // ==========================================
+    document.getElementById('manual-input-btn').addEventListener('click', function() {
+        const manualDiv = document.getElementById('manual-input');
+        if (manualDiv.style.display === 'none' || manualDiv.style.display === '') {
+            manualDiv.style.display = 'block';
+            document.getElementById('codigo-manual').focus();
+            stopScanner();
+        } else {
+            manualDiv.style.display = 'none';
+        }
+    });
+
+    document.getElementById('buscar-manual').addEventListener('click', function() {
+        const codigo = document.getElementById('codigo-manual').value.trim();
+        if (codigo) {
+            procesarCodigo(codigo);
+            document.getElementById('codigo-manual').value = '';
+            document.getElementById('manual-input').style.display = 'none';
+        } else {
+            alert('Por favor ingresa un código de barras');
+        }
+    });
+
+    document.getElementById('codigo-manual').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('buscar-manual').click();
+        }
+    });
+
+    // ==========================================
+    // EVENTOS
+    // ==========================================
+    document.getElementById('start-scanner').addEventListener('click', startScanner);
+    document.getElementById('stop-scanner').addEventListener('click', stopScanner);
+
+    // ==========================================
+    // INICIALIZAR
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', function() {
+        getCameras();
+        document.getElementById('stop-scanner').disabled = true;
+        document.getElementById('manual-input').style.display = 'none';
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const codigo = urlParams.get('codigo');
+        if (codigo) {
+            procesarCodigo(codigo);
+        }
+    });
+
+    window.addEventListener('beforeunload', function() {
+        stopScanner();
+    });
+</script>
+{% endblock %}

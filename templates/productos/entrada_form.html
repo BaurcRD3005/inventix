@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrar Entrada - Inventix{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Columna Izquierda: Registro -->
+        <div class="col-md-5">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white"><h5><i class="fas fa-barcode"></i> 1. Escaneo y Producto</h5></div>
+                <div class="card-body">
+                    <button type="button" id="btn-toggle-camara" class="btn btn-dark w-100 mb-3"><i class="fas fa-camera"></i> Iniciar Escáner</button>
+                    <div id="reader" style="display: none; width: 100%;"></div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Código de Barras</label>
+                        <input type="text" id="codigo-busqueda" class="form-control" placeholder="Escanear o escribir código...">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Categoría</label>
+                        <select id="cat-producto" class="form-select select-busqueda">
+                            <option value="">Seleccione o escriba categoría...</option>
+                            {% for cat in categorias %}
+                                <option value="{{ cat.nombre }}">{{ cat.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nombre del Producto</label>
+                        <select id="nom-producto" class="form-select select-busqueda">
+                            <option value="">Seleccione o escriba producto...</option>
+                            {% for prod in productos %}
+                                <option value="{{ prod.nombre }}">{{ prod.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Tipo</label>
+                            <select id="tipo-unidad" class="form-select">
+                                <option value="pieza">Pieza</option>
+                                <option value="lote">Lote / Caja</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Cantidad</label>
+                            <input type="number" id="cantidad-input" class="form-control" value="1" min="1">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nota</label>
+                        <textarea id="nota-input" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <button type="button" id="btn-agregar-lista" class="btn btn-success w-100">Agregar a tabla</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha -->
+        <div class="col-md-7">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white"><h5><i class="fas fa-table"></i> Productos Agregados</h5></div>
+                <div class="table-responsive">
+                    <table class="table table-hover" id="tabla-carrito">
+                        <thead class="table-light"><tr><th>Nombre</th><th>Tipo</th><th>Cant.</th><th>Nota</th><th>Acción</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-primary w-100" id="btn-guardar-transaccion">Procesar Entrada</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+    // 1. Inicialización de Select2
+    $(document).ready(function() {
+        $('.select-busqueda').select2({
+            placeholder: "Seleccione o escriba una opción...",
+            allowClear: true,
+            width: '100%',
+            tags: true
+        });
+    });
+
+    // 2. Lógica directa de Cantidad (Fuera del document.ready para mayor seguridad)
+    const tipoUnidad = document.getElementById('tipo-unidad');
+    const inputCantidad = document.getElementById('cantidad-input');
+
+    tipoUnidad.onchange = function() {
+        if (this.value === 'pieza') {
+            inputCantidad.value = 1;
+            inputCantidad.readOnly = true; // Forma nativa de bloquear
+        } else {
+            inputCantidad.readOnly = false;
+        }
+    };
+
+    // 3. Manejo del Escáner (Mantenemos tu lógica)
+    let html5QrCode;
+    const readerDiv = document.getElementById('reader');
+
+    document.getElementById('btn-toggle-camara').addEventListener('click', () => {
+        if (!readerDiv.style.display || readerDiv.style.display === 'none') {
+            readerDiv.style.display = 'block';
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 200 }, (decodedText) => {
+                html5QrCode.stop().then(() => {
+                    readerDiv.style.display = 'none';
+                    document.getElementById('codigo-busqueda').value = decodedText;
+                    buscarProducto(decodedText);
+                });
+            });
+        } else {
+            html5QrCode.stop().then(() => readerDiv.style.display = 'none');
+        }
+    });
+
+    function buscarProducto(codigo) {
+        fetch(`/productos/api/buscar-barcode/?codigo=${codigo}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    $('#nom-producto').val(data.nombre).trigger('change');
+                    $('#cat-producto').val(data.categoria_nombre).trigger('change');
+                } else {
+                    alert('Producto no encontrado');
+                }
+            });
+    }
+
+    // 4. Agregar a tabla
+    document.getElementById('btn-agregar-lista').addEventListener('click', () => {
+        const nombre = $('#nom-producto').val();
+        const tipo = document.getElementById('tipo-unidad').value;
+        const cant = document.getElementById('cantidad-input').value;
+        const nota = document.getElementById('nota-input').value;
+
+        if(!nombre) return alert('Por favor, selecciona un producto');
+        
+        const tbody = document.querySelector('#tabla-carrito tbody');
+        tbody.innerHTML += `<tr>
+            <td>${nombre}</td>
+            <td>${tipo}</td>
+            <td>${cant}</td>
+            <td>${nota}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="this.parentElement.parentElement.remove()">X</button></td>
+        </tr>`;
+        
+        // Reset básico
+        document.getElementById('cantidad-input').value = 1;
+        document.getElementById('cantidad-input').readOnly = (tipo === 'pieza');
+        document.getElementById('nota-input').value = '';
+    });
+</script>
+{% endblock %}

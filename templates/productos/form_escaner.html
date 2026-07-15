@@ -1,0 +1,577 @@
+<!-- templates/productos/form_escaner.html -->
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Registrar Producto con Escáner - Inventix{% endblock %}
+
+{% block extra_css %}
+<style>
+    .scanner-section {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 2px dashed #cbd5e1;
+    }
+    
+    #scanner-container {
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto;
+        background: #000;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+        min-height: 250px;
+    }
+    
+    #scanner-container video {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    
+    #scanner-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80%;
+        height: 40%;
+        border: 3px solid #10B981;
+        border-radius: 12px;
+        box-shadow: 0 0 0 4000px rgba(0,0,0,0.3);
+        pointer-events: none;
+        animation: pulse-border 1.5s ease-in-out infinite;
+        z-index: 10;
+    }
+    
+    @keyframes pulse-border {
+        0%, 100% { border-color: #10B981; }
+        50% { border-color: #F59E0B; }
+    }
+    
+    .scanner-controls {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .btn-escaner {
+        min-width: 100px;
+    }
+    
+    .codigo-detectado {
+        background: #D1FAE5;
+        border: 2px solid #10B981;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin-top: 0.5rem;
+        display: none;
+    }
+    
+    .codigo-detectado code {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #065F46;
+    }
+    
+    #codigo-barras-preview {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4><i class="fas fa-cube"></i> Registrar Producto con Escáner</h4>
+            </div>
+            <div class="card-body">
+                <!-- ========================================== -->
+                <!-- SECCIÓN DEL ESCÁNER -->
+                <!-- ========================================== -->
+                <div class="scanner-section">
+                    <h5><i class="fas fa-camera text-primary"></i> Escáner de Código de Barras</h5>
+                    <p class="text-muted small">
+                        <i class="fas fa-info-circle"></i> 
+                        Usa la cámara para escanear el código de barras del producto.
+                        <br>
+                        <span class="badge bg-warning text-dark">💡 Consejo: Asegura buena iluminación y enfoca bien el código</span>
+                    </p>
+                    
+                    <!-- Selector de cámara -->
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-video"></i> Seleccionar cámara:</label>
+                        <select id="camera-select" class="form-select form-select-sm">
+                            <option value="">Cargando cámaras...</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Contenedor del escáner -->
+                    <div id="scanner-container">
+                        <div id="scanner-overlay"></div>
+                        <div id="scanner">
+                            <div class="text-center text-muted p-4">
+                                <i class="fas fa-camera fa-3x"></i>
+                                <p class="mt-2">Presiona "Iniciar Escáner" para activar la cámara</p>
+                                <small class="text-muted">Asegúrate de permitir el acceso a la cámara</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Controles -->
+                    <div class="scanner-controls">
+                        <button id="start-scanner" class="btn btn-success btn-escaner">
+                            <i class="fas fa-play"></i> Iniciar Escáner
+                        </button>
+                        <button id="stop-scanner" class="btn btn-danger btn-escaner" disabled>
+                            <i class="fas fa-stop"></i> Detener
+                        </button>
+                        <button id="manual-input-btn" class="btn btn-info btn-escaner">
+                            <i class="fas fa-keyboard"></i> Ingresar Manual
+                        </button>
+                    </div>
+                    
+                    <!-- Entrada manual -->
+                    <div id="manual-input" style="display: none;" class="mt-3">
+                        <div class="input-group">
+                            <input type="text" id="codigo-manual" class="form-control" 
+                                   placeholder="Ingresa el código de barras manualmente (ej: 7501234567890)">
+                            <button id="buscar-manual" class="btn btn-primary">
+                                <i class="fas fa-check"></i> Aplicar
+                            </button>
+                        </div>
+                        <small class="text-muted">Ejemplo: 7501234567890 (Código EAN-13)</small>
+                    </div>
+                    
+                    <!-- Código detectado -->
+                    <div id="codigo-detectado" class="codigo-detectado" style="display: none;">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <strong>Código escaneado:</strong>
+                        <code id="codigo-detected-value" class="bg-dark text-white p-1 px-2 rounded"></code>
+                        <button id="limpiar-codigo" class="btn btn-sm btn-outline-danger ms-2">
+                            <i class="fas fa-times"></i> Limpiar
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- ========================================== -->
+                <!-- FORMULARIO DEL PRODUCTO -->
+                <!-- ========================================== -->
+                <form method="post" enctype="multipart/form-data" id="producto-form">
+                    {% csrf_token %}
+                    
+                    <!-- Campo oculto para el código de barras -->
+                    <input type="hidden" id="codigo_barras_field" name="codigo_barras" value="">
+                    
+                    <!-- Mostrar el código detectado -->
+                    <div id="codigo-barras-preview" class="alert alert-info">
+                        <i class="fas fa-barcode"></i>
+                        <strong>Código de barras:</strong>
+                        <span id="codigo-preview-text"></span>
+                    </div>
+                    
+                    {{ form|crispy }}
+                    
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Registrar Producto
+                        </button>
+                        <a href="{% url 'productos:lista' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+                
+                <!-- ========================================== -->
+                <!-- CÓDIGOS DE PRUEBA -->
+                <!-- ========================================== -->
+                <div class="mt-4">
+                    <div class="card bg-light">
+                        <div class="card-header">
+                            <h6><i class="fas fa-barcode"></i> Códigos de prueba</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted small">Si no tienes un código físico, puedes usar estos para probar:</p>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="aplicarCodigo('7501234567890')">
+                                    📦 7501234567890
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="aplicarCodigo('7509876543210')">
+                                    📦 7509876543210
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="aplicarCodigo('7501112223334')">
+                                    📦 7501112223334
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="aplicarCodigo('7504445556667')">
+                                    📦 7504445556667
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="aplicarCodigo('1234567890123')">
+                                    📦 1234567890123
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- QuaggaJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js">
+</script>
+
+<script>
+    let scannerRunning = false;
+    let codigoDetectado = '';
+
+    // ==========================================
+    // CONFIGURACIÓN DE CÁMARAS
+    // ==========================================
+    async function getCameras() {
+        try {
+            // Verificar soporte de cámara
+            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+                alert('⚠️ Tu navegador no soporta la cámara. Usa Chrome, Firefox o Edge.');
+                return;
+            }
+
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            const select = document.getElementById('camera-select');
+            select.innerHTML = '<option value="">Seleccionar cámara...</option>';
+            
+            if (videoDevices.length === 0) {
+                select.innerHTML = '<option value="">No se encontraron cámaras</option>';
+                document.getElementById('start-scanner').disabled = true;
+                return;
+            }
+            
+            videoDevices.forEach((device, index) => {
+                const option = document.createElement('option');
+                option.value = device.deviceId;
+                option.text = device.label || `Cámara ${index + 1}`;
+                select.appendChild(option);
+            });
+            
+            // Seleccionar cámara trasera por defecto
+            const backCamera = videoDevices.find(d => 
+                d.label.toLowerCase().includes('back') || 
+                d.label.toLowerCase().includes('trasera')
+            );
+            if (backCamera) {
+                select.value = backCamera.deviceId;
+            } else if (videoDevices.length > 0) {
+                select.value = videoDevices[0].deviceId;
+            }
+            
+            // Habilitar el botón
+            document.getElementById('start-scanner').disabled = false;
+            
+            console.log('📷 Cámaras disponibles:', videoDevices.length);
+            
+        } catch (error) {
+            console.error('Error al obtener cámaras:', error);
+            alert('⚠️ Error al acceder a la cámara: ' + error.message);
+        }
+    }
+
+    // ==========================================
+    // INICIAR ESCÁNER
+    // ==========================================
+    function startScanner() {
+        const cameraId = document.getElementById('camera-select').value;
+        if (!cameraId) {
+            alert('📷 Por favor selecciona una cámara');
+            return;
+        }
+        
+        // Verificar permisos de cámara
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(stream) {
+                stream.getTracks().forEach(track => track.stop());
+                console.log('✅ Permiso de cámara concedido');
+                iniciarQuagga(cameraId);
+            })
+            .catch(function(err) {
+                console.error('❌ Error de permisos:', err);
+                alert('⚠️ Permiso de cámara denegado.\n\n' +
+                      'Para escanear desde el celular:\n' +
+                      '1. Usa Chrome o Firefox\n' +
+                      '2. Permite el acceso a la cámara\n' +
+                      '3. Asegúrate de estar en HTTPS\n\n' +
+                      'Desde PC: Asegúrate de tener una cámara conectada');
+            });
+    }
+
+    function iniciarQuagga(cameraId) {
+        if (scannerRunning) {
+            stopScanner();
+        }
+        
+        const scannerDiv = document.querySelector('#scanner');
+        scannerDiv.innerHTML = '';
+        document.getElementById('resultado').style.display = 'none';
+        
+        // Mostrar mensaje de carga
+        scannerDiv.innerHTML = `
+            <div class="text-center text-white p-4">
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="mt-2 text-light">Iniciando cámara...</p>
+            </div>
+        `;
+        
+        Quagga.init({
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: document.querySelector('#scanner'),
+                constraints: {
+                    deviceId: cameraId,
+                    width: { min: 320, max: 640 },
+                    height: { min: 240, max: 480 },
+                    facingMode: "environment"
+                },
+            },
+            decoder: {
+                readers: [
+                    "code_128_reader",
+                    "ean_reader",
+                    "ean_8_reader",
+                    "code_39_reader",
+                    "code_39_vin_reader",
+                    "codabar_reader",
+                    "upc_reader",
+                    "upc_e_reader",
+                    "i2of5_reader"
+                ]
+            },
+            locate: true,
+            numOfWorkers: 4,
+            frequency: 10,
+        }, function(err) {
+            if (err) {
+                console.error('Error al iniciar Quagga:', err);
+                alert('❌ Error al iniciar el escáner:\n' + err.message);
+                document.querySelector('#scanner').innerHTML = `
+                    <div class="text-center text-danger p-4">
+                        <i class="fas fa-exclamation-circle fa-3x"></i>
+                        <p class="mt-2">Error al iniciar la cámara</p>
+                        <small>${err.message}</small>
+                    </div>
+                `;
+                return;
+            }
+            Quagga.start();
+            scannerRunning = true;
+            document.getElementById('start-scanner').disabled = true;
+            document.getElementById('stop-scanner').disabled = false;
+            console.log('✅ Escáner iniciado correctamente');
+        });
+        
+        Quagga.onDetected(function(result) {
+            const code = result.codeResult.code;
+            if (code) {
+                console.log('📦 Código detectado:', code);
+                aplicarCodigo(code);
+                if (navigator.vibrate) {
+                    navigator.vibrate(200);
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // DETENER ESCÁNER
+    // ==========================================
+    function stopScanner() {
+        if (scannerRunning) {
+            try {
+                Quagga.stop();
+            } catch(e) {
+                console.log('Error al detener Quagga:', e);
+            }
+            scannerRunning = false;
+            document.getElementById('start-scanner').disabled = false;
+            document.getElementById('stop-scanner').disabled = true;
+            console.log('⏹️ Escáner detenido');
+        }
+    }
+
+    // ==========================================
+    // APLICAR CÓDIGO DETECTADO
+    // ==========================================
+    function aplicarCodigo(codigo) {
+        codigoDetectado = codigo;
+        
+        // Mostrar en el campo de código
+        document.getElementById('codigo_barras_field').value = codigo;
+        
+        // Mostrar preview
+        document.getElementById('codigo-preview-text').textContent = codigo;
+        document.getElementById('codigo-barras-preview').style.display = 'block';
+        
+        // Mostrar en el área de detección
+        document.getElementById('codigo-detected-value').textContent = codigo;
+        document.getElementById('codigo-detectado').style.display = 'block';
+        
+        // Actualizar el campo visible del formulario
+        const codigoInput = document.querySelector('input[name="codigo_barras"]');
+        if (codigoInput) {
+            codigoInput.value = codigo;
+        }
+        
+        // Efecto visual de confirmación
+        const preview = document.getElementById('codigo-barras-preview');
+        preview.className = 'alert alert-success';
+        preview.innerHTML = `
+            <i class="fas fa-check-circle"></i>
+            <strong>¡Código escaneado!</strong>
+            <span class="badge bg-dark ms-2">${codigo}</span>
+        `;
+        
+        // Scroll al formulario
+        document.getElementById('producto-form').scrollIntoView({ behavior: 'smooth' });
+        
+        // Mensaje de éxito
+        const contentDiv = document.getElementById('resultado-content');
+        if (contentDiv) {
+            contentDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <strong>¡Código escaneado exitosamente!</strong>
+                    <p class="mb-0 mt-1">Código: <code>${codigo}</code></p>
+                    <small>Completa el resto del formulario y registra el producto.</small>
+                </div>
+            `;
+            document.getElementById('resultado').style.display = 'block';
+        }
+        
+        // Limpiar el área del escáner
+        setTimeout(() => {
+            const scannerDiv = document.querySelector('#scanner');
+            if (scannerDiv) {
+                scannerDiv.innerHTML = `
+                    <div class="text-center text-white p-4">
+                        <i class="fas fa-check-circle fa-3x text-success"></i>
+                        <p class="mt-2 text-light">✅ Código escaneado correctamente</p>
+                        <small class="text-muted">Puedes cerrar la cámara y completar el formulario</small>
+                    </div>
+                `;
+            }
+            stopScanner();
+        }, 1500);
+    }
+
+    // ==========================================
+    // LIMPIAR CÓDIGO
+    // ==========================================
+    function limpiarCodigo() {
+        codigoDetectado = '';
+        document.getElementById('codigo_barras_field').value = '';
+        document.getElementById('codigo-barras-preview').style.display = 'none';
+        document.getElementById('codigo-detectado').style.display = 'none';
+        document.getElementById('resultado').style.display = 'none';
+        
+        const codigoInput = document.querySelector('input[name="codigo_barras"]');
+        if (codigoInput) {
+            codigoInput.value = '';
+        }
+        
+        // Restaurar el área del escáner
+        const scannerDiv = document.querySelector('#scanner');
+        if (scannerDiv) {
+            scannerDiv.innerHTML = `
+                <div class="text-center text-muted p-4">
+                    <i class="fas fa-camera fa-3x"></i>
+                    <p class="mt-2">Presiona "Iniciar Escáner" para activar la cámara</p>
+                    <small class="text-muted">Asegúrate de permitir el acceso a la cámara</small>
+                </div>
+            `;
+        }
+    }
+
+    // ==========================================
+    // ENTRADA MANUAL
+    // ==========================================
+    document.getElementById('manual-input-btn').addEventListener('click', function() {
+        const div = document.getElementById('manual-input');
+        if (div.style.display === 'none' || div.style.display === '') {
+            div.style.display = 'block';
+            document.getElementById('codigo-manual').focus();
+            stopScanner();
+            const scannerDiv = document.querySelector('#scanner');
+            if (scannerDiv) {
+                scannerDiv.innerHTML = `
+                    <div class="text-center text-muted p-4">
+                        <i class="fas fa-keyboard fa-3x"></i>
+                        <p class="mt-2">Modo manual activado</p>
+                        <small>Ingresa el código de barras a continuación</small>
+                    </div>
+                `;
+            }
+        } else {
+            div.style.display = 'none';
+        }
+    });
+
+    document.getElementById('buscar-manual').addEventListener('click', function() {
+        const codigo = document.getElementById('codigo-manual').value.trim();
+        if (codigo) {
+            aplicarCodigo(codigo);
+            document.getElementById('codigo-manual').value = '';
+            document.getElementById('manual-input').style.display = 'none';
+        } else {
+            alert('Por favor ingresa un código de barras válido');
+        }
+    });
+
+    document.getElementById('codigo-manual').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('buscar-manual').click();
+        }
+    });
+
+    document.getElementById('limpiar-codigo').addEventListener('click', function() {
+        limpiarCodigo();
+    });
+
+    // ==========================================
+    // EVENTOS
+    // ==========================================
+    document.getElementById('start-scanner').addEventListener('click', startScanner);
+    document.getElementById('stop-scanner').addEventListener('click', stopScanner);
+
+    // ==========================================
+    // INICIALIZAR
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('📱 Inicializando escáner...');
+        getCameras();
+        document.getElementById('stop-scanner').disabled = true;
+        document.getElementById('manual-input').style.display = 'none';
+        document.getElementById('codigo-barras-preview').style.display = 'none';
+        
+        // Verificar si hay código en la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const codigo = urlParams.get('codigo');
+        if (codigo) {
+            aplicarCodigo(codigo);
+        }
+    });
+
+    // Limpiar al salir de la página
+    window.addEventListener('beforeunload', function() {
+        stopScanner();
+    });
+</script>
+{% endblock %}
