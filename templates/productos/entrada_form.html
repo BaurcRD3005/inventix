@@ -2,6 +2,12 @@
 
 {% block title %}Registrar Entrada - Inventix{% endblock %}
 
+{% block extra_css %}
+<!-- 1. Agregar el CSS de Select2 -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid py-4">
     <div class="row">
@@ -80,32 +86,37 @@
     </div>
 </div>
 
+<!-- 2. Asegurarte de que jQuery esté cargado primero, seguido de Select2 JS y Html5Qrcode -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
+
 <script>
-    // 1. Inicialización de Select2
+    // 3. Inicialización de Select2
     $(document).ready(function() {
         $('.select-busqueda').select2({
             placeholder: "Seleccione o escriba una opción...",
             allowClear: true,
             width: '100%',
-            tags: true
+            tags: true,
+            theme: 'bootstrap-5' // Opcional: Integra mejor el diseño con Bootstrap 5
         });
     });
 
-    // 2. Lógica directa de Cantidad (Fuera del document.ready para mayor seguridad)
+    // 4. Lógica directa de Cantidad
     const tipoUnidad = document.getElementById('tipo-unidad');
     const inputCantidad = document.getElementById('cantidad-input');
 
     tipoUnidad.onchange = function() {
         if (this.value === 'pieza') {
             inputCantidad.value = 1;
-            inputCantidad.readOnly = true; // Forma nativa de bloquear
+            inputCantidad.readOnly = true;
         } else {
             inputCantidad.readOnly = false;
         }
     };
 
-    // 3. Manejo del Escáner (Mantenemos tu lógica)
+    // 5. Manejo del Escáner
     let html5QrCode;
     const readerDiv = document.getElementById('reader');
 
@@ -138,7 +149,7 @@
             });
     }
 
-    // 4. Agregar a tabla
+    // 6. Agregar a tabla
     document.getElementById('btn-agregar-lista').addEventListener('click', () => {
         const nombre = $('#nom-producto').val();
         const tipo = document.getElementById('tipo-unidad').value;
