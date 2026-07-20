@@ -550,7 +550,7 @@
             video.srcObject = mediaStream;
             video.play();
             
-            document.getElementById('scanner-status').textContent = '📷 Cámara activa - Escaneando QR...';
+            document.getElementById('scanner-status').textContent = ' Cámara activa - Escaneando QR...';
             document.getElementById('scanner-overlay').style.display = 'block';
             qrScannerRunning = true;
             
@@ -616,33 +616,85 @@
         });
     }
 
-    function buscarProductoPorQR(codigo) {
-        document.getElementById('scanner-status').textContent = '🔍 Buscando producto...';
-        
-        fetch(`/ventas/api/buscar-qr/?codigo=${encodeURIComponent(codigo)}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    agregarProducto(data.id, 1, data.nombre, data.precio);
-                    document.getElementById('scanner-status').textContent = `✅ Producto agregado: ${data.nombre}`;
-                    
-                    setTimeout(() => {
-                        document.getElementById('scanner-container').style.display = 'none';
-                        qrVisible = false;
-                        document.getElementById('scanner-overlay').style.display = 'none';
-                    }, 1500);
-                } else {
-                    document.getElementById('scanner-status').textContent = '❌ ' + data.message;
-                    mostrarToast('❌ ' + data.message);
-                    qrCodigoDetectado = false;
-                }
-            })
-            .catch(error => {
-                document.getElementById('scanner-status').textContent = '❌ Error: ' + error.message;
-                mostrarToast('❌ Error al buscar producto');
+    // ventas/crear.html - Reemplazar la función buscarProductoPorQR
+
+function buscarProductoPorQR(codigo) {
+    document.getElementById('scanner-status').textContent = 'Buscando producto...';
+    
+    fetch(`/ventas/api/buscar-qr/?codigo=${encodeURIComponent(codigo)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // ==========================================
+                // VENTA RÁPIDA: Procesar inmediatamente
+                // ==========================================
+                // 1. Agregar a la tabla visual
+                agregarProducto(data.id, 1, data.nombre, data.precio);
+                document.getElementById('scanner-status').textContent = `✅ Producto agregado: ${data.nombre}`;
+                
+                // 2. FINALIZAR VENTA AUTOMÁTICAMENTE
+                setTimeout(() => {
+                    // Obtener el producto de la lista
+                    const producto = productosSeleccionados.find(p => p.id === data.id);
+                    if (producto) {
+                        // Enviar venta al servidor
+                        const form = document.getElementById('form-venta');
+                        // Limpiar campos ocultos anteriores
+                        form.querySelectorAll('input[name="producto_id[]"]').forEach(el => el.remove());
+                        form.querySelectorAll('input[name="cantidad[]"]').forEach(el => el.remove());
+                        form.querySelectorAll('input[name="precio[]"]').forEach(el => el.remove());
+                        
+                        // Agregar el producto actual
+                        const inputId = document.createElement('input');
+                        inputId.type = 'hidden';
+                        inputId.name = 'producto_id[]';
+                        inputId.value = producto.id;
+                        form.appendChild(inputId);
+                        
+                        const inputCantidad = document.createElement('input');
+                        inputCantidad.type = 'hidden';
+                        inputCantidad.name = 'cantidad[]';
+                        inputCantidad.value = producto.cantidad;
+                        form.appendChild(inputCantidad);
+                        
+                        const inputPrecio = document.createElement('input');
+                        inputPrecio.type = 'hidden';
+                        inputPrecio.name = 'precio[]';
+                        inputPrecio.value = producto.precio;
+                        form.appendChild(inputPrecio);
+                        
+                        // Enviar el formulario automáticamente
+                        form.submit();
+                    }
+                }, 500); // Esperar medio segundo para mostrar el toast
+                
+                // Cerrar escáner
+                setTimeout(() => {
+                    document.getElementById('scanner-container').style.display = 'none';
+                    qrVisible = false;
+                    document.getElementById('scanner-overlay').style.display = 'none';
+                }, 1500);
+                
+            } else {
+                document.getElementById('scanner-status').textContent = '❌ ' + data.message;
+                mostrarToast('❌ ' + data.message);
                 qrCodigoDetectado = false;
-            });
-    }
+                // Reactivar escáner para seguir escaneando
+                setTimeout(() => {
+                    qrCodigoDetectado = false;
+                    if (!qrScannerRunning) {
+                        const cameraId = document.getElementById('start-qr-scanner').dataset.cameraId;
+                        if (cameraId) iniciarQREscanner(cameraId);
+                    }
+                }, 1000);
+            }
+        })
+        .catch(error => {
+            document.getElementById('scanner-status').textContent = '❌ Error: ' + error.message;
+            mostrarToast('❌ Error al buscar producto');
+            qrCodigoDetectado = false;
+        });
+}
 
     function detenerQREscanner() {
         qrScannerRunning = false;
