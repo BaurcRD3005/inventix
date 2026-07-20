@@ -255,3 +255,43 @@ def venta_buscar_por_qr(request):
         }
     
     return JsonResponse(data)
+
+# ventas/views.py - Agregar al final
+
+@login_required
+def venta_buscar_por_qr(request):
+    """API para buscar producto por código QR en ventas"""
+    codigo = request.GET.get('codigo', '').strip()
+    
+    if not codigo:
+        return JsonResponse({
+            'success': False,
+            'message': 'Código QR vacío'
+        })
+    
+    try:
+        producto = Producto.objects.get(codigo_barras=codigo, activo=True)
+        
+        if producto.cantidad <= 0:
+            return JsonResponse({
+                'success': False,
+                'message': f'Producto "{producto.nombre}" sin stock disponible'
+            })
+        
+        data = {
+            'success': True,
+            'id': producto.id,
+            'nombre': producto.nombre,
+            'codigo_barras': producto.codigo_barras,
+            'precio': float(producto.precio),
+            'cantidad': producto.cantidad,
+            'categoria': producto.categoria.nombre if producto.categoria else 'Sin categoría',
+            'imagen_url': producto.imagen.url if producto.imagen else None
+        }
+    except Producto.DoesNotExist:
+        data = {
+            'success': False,
+            'message': f'No se encontró producto con código: {codigo}'
+        }
+    
+    return JsonResponse(data)

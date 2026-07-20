@@ -1,8 +1,106 @@
 <!-- templates/ventas/crear.html -->
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
+{% load static %}
 
 {% block title %}Registrar Venta - Inventix{% endblock %}
+
+{% block extra_css %}
+<style>
+    .scanner-container {
+        background: #000;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+        min-height: 200px;
+        margin-top: 10px;
+        display: none;
+    }
+    
+    .scanner-container video {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    
+    .scanner-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 70%;
+        height: 50%;
+        border: 3px solid #10B981;
+        border-radius: 12px;
+        box-shadow: 0 0 0 4000px rgba(0,0,0,0.3);
+        pointer-events: none;
+        animation: pulse-border 1.5s ease-in-out infinite;
+        z-index: 10;
+        display: none;
+    }
+    
+    @keyframes pulse-border {
+        0%, 100% { border-color: #10B981; }
+        50% { border-color: #F59E0B; }
+    }
+    
+    .scanner-controls {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .scanner-controls .btn {
+        font-size: 0.8rem;
+        padding: 0.3rem 0.8rem;
+    }
+    
+    .scanner-status {
+        text-align: center;
+        padding: 0.3rem;
+        font-size: 0.85rem;
+        color: #6b7280;
+    }
+    
+    .btn-qr {
+        background: linear-gradient(135deg, #7C3AED, #4F46E5);
+        color: white;
+        border: none;
+    }
+    
+    .btn-qr:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(79, 70, 229, 0.3);
+        color: white;
+    }
+    
+    .toast-notification {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #10B981;
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        z-index: 1000;
+        animation: slideInUp 0.5s ease;
+        display: none;
+        max-width: 350px;
+    }
+    
+    @keyframes slideInUp {
+        from { transform: translateY(100px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .toast-notification .nombre {
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -15,7 +113,50 @@
                 <form id="form-venta" method="post">
                     {% csrf_token %}
                     
-                    <!-- Selección de productos -->
+                    <!-- ========================================== -->
+                    <!-- BOTÓN ESCÁNER QR -->
+                    <!-- ========================================== -->
+                    <div class="mb-3">
+                        <button type="button" id="toggle-qr-scanner" class="btn btn-qr w-100">
+                            <i class="fas fa-qrcode"></i> 📷 Escanear Código QR
+                        </button>
+                        
+                        <!-- Contenedor del escáner -->
+                        <div id="scanner-container" class="scanner-container">
+                            <div id="scanner-overlay" class="scanner-overlay"></div>
+                            <video id="scanner-video" autoplay playsinline style="width:100%;height:auto;display:block;background:#000;"></video>
+                            <canvas id="scanner-canvas" style="display:none;"></canvas>
+                        </div>
+                        
+                        <div id="scanner-status" class="scanner-status">📷 Haz clic en "Escanear QR" para activar la cámara</div>
+                        
+                        <div class="scanner-controls">
+                            <button id="start-qr-scanner" class="btn btn-success btn-sm">
+                                <i class="fas fa-play"></i> Iniciar Escáner
+                            </button>
+                            <button id="stop-qr-scanner" class="btn btn-danger btn-sm" disabled>
+                                <i class="fas fa-stop"></i> Detener
+                            </button>
+                            <button id="manual-qr-input-btn" class="btn btn-info btn-sm">
+                                <i class="fas fa-keyboard"></i> Manual
+                            </button>
+                        </div>
+                        
+                        <!-- Entrada manual QR -->
+                        <div id="manual-qr-input" style="display: none;" class="mt-2">
+                            <div class="input-group input-group-sm">
+                                <input type="text" id="codigo-qr-manual" class="form-control" 
+                                       placeholder="Ingresa el código QR manualmente">
+                                <button id="buscar-qr-manual" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Buscar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ========================================== -->
+                    <!-- SELECCIÓN DE PRODUCTOS MANUAL -->
+                    <!-- ========================================== -->
                     <div class="row mb-3">
                         <div class="col-md-7">
                             <label for="id_producto" class="form-label">Producto</label>
@@ -39,7 +180,9 @@
                         </div>
                     </div>
                     
-                    <!-- Tabla de productos seleccionados -->
+                    <!-- ========================================== -->
+                    <!-- TABLA DE PRODUCTOS SELECCIONADOS -->
+                    <!-- ========================================== -->
                     <div class="table-responsive">
                         <table class="table table-bordered">
                             <thead>
@@ -61,7 +204,9 @@
                         </table>
                     </div>
                     
-                    <!-- Observaciones y total -->
+                    <!-- ========================================== -->
+                    <!-- OBSERVACIONES Y TOTAL -->
+                    <!-- ========================================== -->
                     <div class="row mt-3">
                         <div class="col-md-6">
                             {{ form.observaciones|as_crispy_field }}
@@ -99,6 +244,11 @@
                         Elige un producto del menú desplegable
                     </li>
                     <li class="mb-3">
+                        <i class="fas fa-qrcode text-success"></i>
+                        <strong>Escáner QR:</strong>
+                        Escanea el código QR del producto para agregarlo
+                    </li>
+                    <li class="mb-3">
                         <i class="fas fa-keyboard text-primary"></i>
                         <strong>Atajo:</strong>
                         Presiona <kbd>Enter</kbd> para agregar el producto
@@ -120,30 +270,97 @@
     </div>
 </div>
 
+<!-- Toast de notificación -->
+<div id="toast-notification" class="toast-notification">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <div class="nombre" id="toast-nombre">Producto</div>
+            <div id="toast-precio">$0.00</div>
+        </div>
+        <i class="fas fa-check-circle fa-2x"></i>
+    </div>
+</div>
+
+<!-- QuaggaJS para QR -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js">
+</script>
+
 <script>
+    // ==========================================
+    // VARIABLES DE VENTA
+    // ==========================================
     let productosSeleccionados = [];
     let total = 0;
     
+    // ==========================================
+    // VARIABLES DEL ESCÁNER QR
+    // ==========================================
+    let qrScannerRunning = false;
+    let qrStream = null;
+    let qrScanInterval = null;
+    let qrVisible = false;
+    let qrCodigoDetectado = false;
+
+    // ==========================================
+    // TOAST DE NOTIFICACIÓN
+    // ==========================================
+    function mostrarToast(mensaje, precio = '') {
+        const toast = document.getElementById('toast-notification');
+        document.getElementById('toast-nombre').textContent = mensaje;
+        document.getElementById('toast-precio').textContent = precio;
+        toast.style.display = 'block';
+        toast.style.background = precio ? '#10B981' : '#F59E0B';
+        
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 2500);
+    }
+
+    // ==========================================
+    // FUNCIONES DE VENTA
+    // ==========================================
     function actualizarPrecio() {
         const select = document.getElementById('id_producto');
         const option = select.options[select.selectedIndex];
         const cantidad = document.getElementById('id_cantidad');
-        const precio = option.dataset.precio || 0;
         const disponible = option.dataset.cantidad || 0;
-        
         cantidad.max = disponible;
     }
     
-    function agregarProducto() {
-        const select = document.getElementById('id_producto');
-        const cantidad = document.getElementById('id_cantidad');
-        const productoId = select.value;
-        const productoNombre = select.options[select.selectedIndex].text.split(' - ')[0];
-        const precio = parseFloat(select.options[select.selectedIndex].dataset.precio) || 0;
-        const disponible = parseInt(select.options[select.selectedIndex].dataset.cantidad) || 0;
-        const cantidadVal = parseInt(cantidad.value) || 1;
+    function agregarProducto(productoId, cantidad, nombre, precio) {
+        if (productoId !== undefined) {
+            const existe = productosSeleccionados.some(p => p.id === productoId);
+            if (existe) {
+                mostrarToast('⚠️ Producto ya agregado');
+                return;
+            }
+            
+            const subtotal = precio * cantidad;
+            productosSeleccionados.push({
+                id: productoId,
+                nombre: nombre,
+                cantidad: cantidad,
+                precio: precio,
+                subtotal: subtotal
+            });
+            
+            actualizarTabla();
+            calcularTotal();
+            limpiarSeleccion();
+            mostrarToast(`✅ ${nombre} agregado (${cantidad} uds.)`, `$${subtotal.toFixed(2)}`);
+            return;
+        }
         
-        if (!productoId) {
+        // Método normal (desde select)
+        const select = document.getElementById('id_producto');
+        const cantidadInput = document.getElementById('id_cantidad');
+        const productoIdSelect = select.value;
+        const productoNombre = select.options[select.selectedIndex].text.split(' - ')[0];
+        const precioSelect = parseFloat(select.options[select.selectedIndex].dataset.precio) || 0;
+        const disponible = parseInt(select.options[select.selectedIndex].dataset.cantidad) || 0;
+        const cantidadVal = parseInt(cantidadInput.value) || 1;
+        
+        if (!productoIdSelect) {
             alert('Por favor selecciona un producto');
             return;
         }
@@ -153,30 +370,29 @@
             return;
         }
         
-        // Verificar si el producto ya está en la lista
-        const existe = productosSeleccionados.some(p => p.id === parseInt(productoId));
+        const existe = productosSeleccionados.some(p => p.id === parseInt(productoIdSelect));
         if (existe) {
             alert('Este producto ya está en la lista');
             return;
         }
         
-        const subtotal = precio * cantidadVal;
+        const subtotal = precioSelect * cantidadVal;
         productosSeleccionados.push({
-            id: parseInt(productoId),
+            id: parseInt(productoIdSelect),
             nombre: productoNombre,
             cantidad: cantidadVal,
-            precio: precio,
+            precio: precioSelect,
             subtotal: subtotal
         });
         
         actualizarTabla();
         calcularTotal();
         limpiarSeleccion();
+        mostrarToast(`✅ ${productoNombre} agregado`, `$${subtotal.toFixed(2)}`);
     }
     
     function actualizarTabla() {
         const tbody = document.getElementById('tabla-productos');
-        const filaVacia = document.getElementById('fila-vacia');
         
         if (productosSeleccionados.length === 0) {
             tbody.innerHTML = `
@@ -232,10 +448,7 @@
             return false;
         }
         
-        // Agregar campos ocultos para enviar los productos
         const form = document.getElementById('form-venta');
-        
-        // Eliminar campos ocultos anteriores si existen
         form.querySelectorAll('input[name="producto_id[]"]').forEach(el => el.remove());
         form.querySelectorAll('input[name="cantidad[]"]').forEach(el => el.remove());
         form.querySelectorAll('input[name="precio[]"]').forEach(el => el.remove());
@@ -262,8 +475,237 @@
         
         return true;
     }
+
+    // ==========================================
+    // ESCÁNER QR
+    // ==========================================
     
-    // Autocomplete con teclas
+    // Mostrar/Ocultar escáner QR
+    document.getElementById('toggle-qr-scanner').addEventListener('click', function() {
+        const container = document.getElementById('scanner-container');
+        if (qrVisible) {
+            container.style.display = 'none';
+            qrVisible = false;
+            detenerQREscanner();
+            document.getElementById('scanner-overlay').style.display = 'none';
+            document.getElementById('scanner-status').textContent = '📷 Escáner oculto';
+        } else {
+            container.style.display = 'block';
+            qrVisible = true;
+            document.getElementById('scanner-status').textContent = '📷 Inicializando cámara...';
+            setTimeout(cargarCamarasQR, 300);
+        }
+    });
+
+    function cargarCamarasQR() {
+        document.getElementById('scanner-status').textContent = '📷 Buscando cámaras...';
+        
+        navigator.mediaDevices.enumerateDevices()
+            .then(function(devices) {
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                if (videoDevices.length === 0) {
+                    document.getElementById('scanner-status').textContent = '❌ No se encontraron cámaras';
+                    return;
+                }
+                
+                const primeraCamara = videoDevices[0].deviceId;
+                document.getElementById('start-qr-scanner').dataset.cameraId = primeraCamara;
+                document.getElementById('scanner-status').textContent = '✅ Cámara lista. Haz clic en "Iniciar Escáner"';
+            })
+            .catch(function(err) {
+                document.getElementById('scanner-status').textContent = '❌ Error: ' + err.message;
+            });
+    }
+
+    // Iniciar escáner QR
+    document.getElementById('start-qr-scanner').addEventListener('click', function() {
+        const cameraId = this.dataset.cameraId;
+        if (!cameraId) {
+            document.getElementById('scanner-status').textContent = '❌ No hay cámara disponible';
+            return;
+        }
+        iniciarQREscanner(cameraId);
+    });
+
+    function iniciarQREscanner(cameraId) {
+        if (qrScannerRunning) {
+            detenerQREscanner();
+        }
+        
+        qrCodigoDetectado = false;
+        document.getElementById('scanner-status').textContent = '📷 Iniciando cámara...';
+        document.getElementById('scanner-overlay').style.display = 'none';
+        
+        navigator.mediaDevices.getUserMedia({
+            video: {
+                deviceId: { exact: cameraId },
+                facingMode: 'environment',
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            }
+        })
+        .then(function(mediaStream) {
+            qrStream = mediaStream;
+            const video = document.getElementById('scanner-video');
+            video.srcObject = mediaStream;
+            video.play();
+            
+            document.getElementById('scanner-status').textContent = '📷 Cámara activa - Escaneando QR...';
+            document.getElementById('scanner-overlay').style.display = 'block';
+            qrScannerRunning = true;
+            
+            document.getElementById('start-qr-scanner').disabled = true;
+            document.getElementById('stop-qr-scanner').disabled = false;
+            
+            if (qrScanInterval) clearInterval(qrScanInterval);
+            qrScanInterval = setInterval(escanearQR, 300);
+        })
+        .catch(function(err) {
+            document.getElementById('scanner-status').textContent = '❌ Error: ' + err.message;
+            console.error('Error:', err);
+        });
+    }
+
+    function escanearQR() {
+        if (!qrScannerRunning) return;
+        
+        const video = document.getElementById('scanner-video');
+        const canvas = document.getElementById('scanner-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (!video.videoWidth) return;
+        
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        
+        Quagga.decodeSingle({
+            src: imageData,
+            numOfWorkers: 0,
+            inputStream: {
+                size: 800,
+                singleChannel: false
+            },
+            decoder: {
+                readers: [
+                    "code_128_reader",
+                    "ean_reader",
+                    "ean_8_reader",
+                    "code_39_reader",
+                    "upc_reader",
+                    "upc_e_reader",
+                    "codabar_reader",
+                    "qr_reader"
+                ]
+            },
+            locate: true
+        }, function(result) {
+            if (result && result.codeResult && !qrCodigoDetectado) {
+                const code = result.codeResult.code;
+                if (code) {
+                    qrCodigoDetectado = true;
+                    console.log('📦 QR detectado:', code);
+                    document.getElementById('scanner-status').textContent = '✅ QR detectado: ' + code;
+                    if (navigator.vibrate) navigator.vibrate(200);
+                    buscarProductoPorQR(code);
+                    detenerQREscanner();
+                }
+            }
+        });
+    }
+
+    function buscarProductoPorQR(codigo) {
+        document.getElementById('scanner-status').textContent = '🔍 Buscando producto...';
+        
+        fetch(`/ventas/api/buscar-qr/?codigo=${encodeURIComponent(codigo)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    agregarProducto(data.id, 1, data.nombre, data.precio);
+                    document.getElementById('scanner-status').textContent = `✅ Producto agregado: ${data.nombre}`;
+                    
+                    setTimeout(() => {
+                        document.getElementById('scanner-container').style.display = 'none';
+                        qrVisible = false;
+                        document.getElementById('scanner-overlay').style.display = 'none';
+                    }, 1500);
+                } else {
+                    document.getElementById('scanner-status').textContent = '❌ ' + data.message;
+                    mostrarToast('❌ ' + data.message);
+                    qrCodigoDetectado = false;
+                }
+            })
+            .catch(error => {
+                document.getElementById('scanner-status').textContent = '❌ Error: ' + error.message;
+                mostrarToast('❌ Error al buscar producto');
+                qrCodigoDetectado = false;
+            });
+    }
+
+    function detenerQREscanner() {
+        qrScannerRunning = false;
+        qrCodigoDetectado = false;
+        
+        if (qrScanInterval) {
+            clearInterval(qrScanInterval);
+            qrScanInterval = null;
+        }
+        
+        if (qrStream) {
+            qrStream.getTracks().forEach(track => track.stop());
+            qrStream = null;
+        }
+        
+        const video = document.getElementById('scanner-video');
+        video.srcObject = null;
+        video.pause();
+        
+        document.getElementById('start-qr-scanner').disabled = false;
+        document.getElementById('stop-qr-scanner').disabled = true;
+        document.getElementById('scanner-overlay').style.display = 'none';
+        
+        document.getElementById('scanner-status').textContent = '⏹️ Escáner detenido';
+        console.log('⏹️ Escáner QR detenido');
+    }
+
+    document.getElementById('stop-qr-scanner').addEventListener('click', detenerQREscanner);
+
+    // ==========================================
+    // ENTRADA MANUAL QR
+    // ==========================================
+    document.getElementById('manual-qr-input-btn').addEventListener('click', function() {
+        const div = document.getElementById('manual-qr-input');
+        if (div.style.display === 'none' || div.style.display === '') {
+            div.style.display = 'block';
+            document.getElementById('codigo-qr-manual').focus();
+            detenerQREscanner();
+        } else {
+            div.style.display = 'none';
+        }
+    });
+
+    document.getElementById('buscar-qr-manual').addEventListener('click', function() {
+        const codigo = document.getElementById('codigo-qr-manual').value.trim();
+        if (codigo) {
+            buscarProductoPorQR(codigo);
+            document.getElementById('codigo-qr-manual').value = '';
+            document.getElementById('manual-qr-input').style.display = 'none';
+        } else {
+            alert('Por favor ingresa un código QR');
+        }
+    });
+
+    document.getElementById('codigo-qr-manual').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('buscar-qr-manual').click();
+        }
+    });
+
+    // ==========================================
+    // AUTOCOMPLETE CON TECLAS
+    // ==========================================
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             const activeElement = document.activeElement;
@@ -272,6 +714,36 @@
                 agregarProducto();
             }
         }
+    });
+
+    // ==========================================
+    // INICIALIZAR
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('stop-qr-scanner').disabled = true;
+        document.getElementById('manual-qr-input').style.display = 'none';
+        document.getElementById('scanner-container').style.display = 'none';
+        document.getElementById('scanner-overlay').style.display = 'none';
+        
+        // Si hay producto seleccionado desde URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const productoId = urlParams.get('producto');
+        if (productoId) {
+            const select = document.getElementById('id_producto');
+            for (let option of select.options) {
+                if (option.value == productoId) {
+                    select.value = productoId;
+                    break;
+                }
+            }
+            actualizarPrecio();
+            document.getElementById('id_cantidad').value = 1;
+            agregarProducto();
+        }
+    });
+
+    window.addEventListener('beforeunload', function() {
+        detenerQREscanner();
     });
 </script>
 {% endblock %}
