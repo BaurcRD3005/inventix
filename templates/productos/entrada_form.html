@@ -1,9 +1,10 @@
+<!-- templates/productos/entrada_form.html -->
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Registrar Entrada - Inventix{% endblock %}
 
 {% block extra_css %}
-<!-- Select2 CSS -->
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 {% endblock %}
@@ -18,58 +19,53 @@
                     <h5><i class="fas fa-barcode"></i> 1. Escaneo y Producto</h5>
                 </div>
                 <div class="card-body">
-                    <button type="button" id="btn-toggle-camara" class="btn btn-dark w-100 mb-3">
-                        <i class="fas fa-camera"></i> Iniciar Escáner
-                    </button>
-                    <div id="reader" style="display: none; width: 100%;"></div>
+                    <!-- Formulario para entrada individual -->
+                    <form method="post" id="form-entrada-individual">
+                        {% csrf_token %}
+                        
+                        <button type="button" id="btn-toggle-camara" class="btn btn-dark w-100 mb-3">
+                            <i class="fas fa-camera"></i> Iniciar Escáner
+                        </button>
+                        <div id="reader" style="display: none; width: 100%;"></div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Código de Barras</label>
-                        <input type="text" id="codigo-busqueda" class="form-control" placeholder="Escanear o escribir código...">
-                    </div>
+                        <div class="mb-3">
+                            <label class="form-label">Código de Barras</label>
+                            <input type="text" id="codigo-busqueda" class="form-control" placeholder="Escanear o escribir código...">
+                        </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Categoría</label>
-                        <select id="cat-producto" class="form-select select-busqueda">
-                            <option value="">Seleccione o escriba categoría...</option>
-                            {% for cat in categorias %}
-                                <option value="{{ cat.nombre }}">{{ cat.nombre }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Nombre del Producto</label>
-                        <select id="nom-producto" class="form-select select-busqueda">
-                            <option value="">Seleccione o escriba producto...</option>
-                            {% for prod in productos %}
-                                <option value="{{ prod.nombre }}">{{ prod.nombre }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <label class="form-label">Tipo</label>
-                            <select id="tipo-unidad" class="form-select">
-                                <option value="pieza">Pieza</option>
-                                <option value="lote">Lote / Caja</option>
+                        <div class="mb-3">
+                            <label class="form-label">Producto</label>
+                            <select id="id_producto" name="producto_id" class="form-select select-busqueda">
+                                <option value="">Seleccione o escriba producto...</option>
+                                {% for prod in productos %}
+                                    <option value="{{ prod.id }}">{{ prod.nombre }}</option>
+                                {% endfor %}
                             </select>
                         </div>
-                        <div class="col-6">
-                            <label class="form-label">Cantidad</label>
-                            <input type="number" id="cantidad-input" class="form-control" value="1" min="1">
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label">Cantidad</label>
+                                <input type="number" id="cantidad-input" name="cantidad" class="form-control" value="1" min="1">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Tipo</label>
+                                <select id="tipo-unidad" name="tipo_unidad" class="form-select">
+                                    <option value="pieza">Pieza</option>
+                                    <option value="lote">Lote / Caja</option>
+                                </select>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Nota</label>
-                        <textarea id="nota-input" class="form-control" rows="2"></textarea>
-                    </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nota</label>
+                            <textarea id="nota-input" name="descripcion" class="form-control" rows="2"></textarea>
+                        </div>
 
-                    <button type="button" id="btn-agregar-lista" class="btn btn-success w-100">
-                        <i class="fas fa-plus"></i> Agregar a tabla
-                    </button>
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-save"></i> Registrar Entrada
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -78,15 +74,14 @@
         <div class="col-md-7">
             <div class="card shadow">
                 <div class="card-header bg-dark text-white">
-                    <h5><i class="fas fa-table"></i> Productos Agregados</h5>
+                    <h5><i class="fas fa-table"></i> Productos Agregados (Entrada por Lote)</h5>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover" id="tabla-carrito">
                         <thead class="table-light">
                             <tr>
-                                <th>Nombre</th>
-                                <th>Tipo</th>
-                                <th>Cant.</th>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
                                 <th>Nota</th>
                                 <th>Acción</th>
                             </tr>
@@ -95,9 +90,14 @@
                     </table>
                 </div>
                 <div class="card-footer">
-                    <button class="btn btn-primary w-100" id="btn-guardar-transaccion">
-                        <i class="fas fa-save"></i> Procesar Entrada
-                    </button>
+                    <form method="post" id="form-entrada-lote">
+                        {% csrf_token %}
+                        <input type="hidden" name="entrada_lote" value="true">
+                        <input type="hidden" name="items" id="items-lote" value="[]">
+                        <button type="submit" class="btn btn-primary w-100" id="btn-guardar-lote">
+                            <i class="fas fa-save"></i> Procesar Entrada por Lote
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -106,29 +106,15 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- 1. jQuery (ya incluido en base.html, pero lo recargamos para asegurar orden) -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<!-- 2. Select2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-<!-- 3. Html5Qrcode -->
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <script>
     // ==========================================
-    // INICIALIZACIÓN DE SELECT2
+    // INICIALIZACIÓN SELECT2
     // ==========================================
     $(document).ready(function() {
-        // Verificar que Select2 está cargado
-        if (typeof $.fn.select2 === 'undefined') {
-            console.error('❌ Select2 no está cargado correctamente');
-            return;
-        }
-        
-        console.log('✅ Select2 cargado correctamente');
-        
-        // Inicializar Select2 en los campos
         $('.select-busqueda').select2({
             placeholder: "Seleccione o escriba una opción...",
             allowClear: true,
@@ -139,22 +125,9 @@
     });
 
     // ==========================================
-    // LÓGICA DE CANTIDAD
+    // VARIABLES
     // ==========================================
-    const tipoUnidad = document.getElementById('tipo-unidad');
-    const inputCantidad = document.getElementById('cantidad-input');
-
-    tipoUnidad.onchange = function() {
-        if (this.value === 'pieza') {
-            inputCantidad.value = 1;
-            inputCantidad.readOnly = true;
-        } else {
-            inputCantidad.readOnly = false;
-        }
-    };
-    
-    // Trigger inicial
-    tipoUnidad.dispatchEvent(new Event('change'));
+    let itemsLote = [];
 
     // ==========================================
     // MANEJO DEL ESCÁNER
@@ -181,7 +154,7 @@
                 }
             ).catch(function(err) {
                 console.error('Error al iniciar escáner:', err);
-                alert('Error al acceder a la cámara. Asegúrate de permitir el acceso.');
+                alert('Error al acceder a la cámara.');
                 readerDiv.style.display = 'none';
                 document.getElementById('btn-toggle-camara').innerHTML = '<i class="fas fa-camera"></i> Iniciar Escáner';
             });
@@ -202,109 +175,99 @@
         fetch(`/productos/api/buscar-barcode/?codigo=${encodeURIComponent(codigo)}`)
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    // Buscar el producto en el select
-                    const select = document.getElementById('nom-producto');
+                if (data.success && data.exists) {
+                    const select = document.getElementById('id_producto');
                     for (let option of select.options) {
-                        if (option.value === data.nombre) {
-                            select.value = data.nombre;
+                        if (option.value == data.id) {
+                            select.value = data.id;
                             break;
                         }
                     }
-                    // Disparar evento change para Select2
                     $(select).trigger('change');
-                    
-                    // Si tiene categoría, seleccionarla
-                    if (data.categoria) {
-                        const catSelect = document.getElementById('cat-producto');
-                        for (let option of catSelect.options) {
-                            if (option.value === data.categoria) {
-                                catSelect.value = data.categoria;
-                                break;
-                            }
-                        }
-                        $(catSelect).trigger('change');
-                    }
-                    
-                    // Enfocar la cantidad
                     document.getElementById('cantidad-input').focus();
                 } else {
-                    alert('❌ Producto no encontrado. Código: ' + codigo);
+                    alert('❌ Producto no encontrado. ¿Quieres registrarlo?');
                 }
             })
             .catch(error => {
-                console.error('Error al buscar producto:', error);
+                console.error('Error:', error);
                 alert('Error al buscar el producto');
             });
     }
 
     // ==========================================
-    // AGREGAR A TABLA
+    // AGREGAR A TABLA (LOTE)
     // ==========================================
-    document.getElementById('btn-agregar-lista').addEventListener('click', function() {
-        const nombre = $('#nom-producto').val();
-        const tipo = document.getElementById('tipo-unidad').value;
-        const cant = document.getElementById('cantidad-input').value;
+    document.querySelector('#form-entrada-individual').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const select = document.getElementById('id_producto');
+        const productoId = select.value;
+        const productoNombre = select.options[select.selectedIndex]?.text || '';
+        const cantidad = document.getElementById('cantidad-input').value;
         const nota = document.getElementById('nota-input').value;
-
-        if (!nombre) {
-            alert('⚠️ Por favor, selecciona un producto');
+        
+        if (!productoId) {
+            alert('⚠️ Por favor selecciona un producto');
             return;
         }
-
-        const tbody = document.querySelector('#tabla-carrito tbody');
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><strong>${nombre}</strong></td>
-            <td>${tipo}</td>
-            <td>${cant}</td>
-            <td>${nota || '-'}</td>
-            <td>
-                <button class="btn btn-danger btn-sm" onclick="eliminarFila(this)">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
-        tbody.appendChild(row);
-
-        // Reset campos
-        document.getElementById('cantidad-input').value = 1;
-        document.getElementById('nota-input').value = '';
-        document.getElementById('tipo-unidad').dispatchEvent(new Event('change'));
+        
+        if (!cantidad || cantidad < 1) {
+            alert('⚠️ Ingresa una cantidad válida');
+            return;
+        }
+        
+        // Verificar si ya está en la lista
+        if (itemsLote.some(item => item.id == productoId)) {
+            alert('⚠️ Este producto ya está en la lista');
+            return;
+        }
+        
+        itemsLote.push({
+            id: parseInt(productoId),
+            nombre: productoNombre,
+            cantidad: parseInt(cantidad),
+            descripcion: nota || ''
+        });
+        
+        actualizarTabla();
+        limpiarCampos();
     });
 
-    function eliminarFila(btn) {
-        btn.closest('tr').remove();
+    function actualizarTabla() {
+        const tbody = document.querySelector('#tabla-carrito tbody');
+        tbody.innerHTML = '';
+        
+        itemsLote.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${item.nombre}</strong></td>
+                <td>${item.cantidad}</td>
+                <td>${item.descripcion || '-'}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm" onclick="eliminarFila(${index})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        
+        // Actualizar campo oculto
+        document.getElementById('items-lote').value = JSON.stringify(itemsLote);
     }
 
-    // ==========================================
-    // PROCESAR ENTRADA (BOTÓN GUARDAR)
-    // ==========================================
-    document.getElementById('btn-guardar-transaccion').addEventListener('click', function() {
-        const rows = document.querySelectorAll('#tabla-carrito tbody tr');
-        if (rows.length === 0) {
-            alert('⚠️ No hay productos en la lista para procesar');
-            return;
-        }
+    function eliminarFila(index) {
+        itemsLote.splice(index, 1);
+        actualizarTabla();
+    }
 
-        // Aquí iría la lógica para enviar los datos al servidor
-        const productos = [];
-        rows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            productos.push({
-                nombre: cells[0].textContent,
-                tipo: cells[1].textContent,
-                cantidad: cells[2].textContent,
-                nota: cells[3].textContent
-            });
-        });
-
-        console.log('Productos a procesar:', productos);
-        alert('✅ Entrada procesada. Revisa la consola para ver los datos.');
-        
-        // Limpiar tabla después de procesar (opcional)
-        // document.querySelector('#tabla-carrito tbody').innerHTML = '';
-    });
+    function limpiarCampos() {
+        document.getElementById('id_producto').value = '';
+        document.getElementById('cantidad-input').value = 1;
+        document.getElementById('nota-input').value = '';
+        $(document.getElementById('id_producto')).trigger('change');
+    }
 
     // ==========================================
     // BÚSQUEDA MANUAL CON ENTER

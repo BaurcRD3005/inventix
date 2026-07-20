@@ -151,10 +151,88 @@ def producto_eliminar(request, pk):
 @login_required
 @user_passes_test(es_admin)
 def entrada_crear(request):
-    # Asegúrate de cargar las categorías y productos
+    """Vista para registrar entrada de mercancía (individual o por lote)"""
+    
+    if request.method == 'POST':
+        # Verificar si es una entrada individual o por lote
+        producto_id = request.POST.get('producto_id')
+        cantidad = request.POST.get('cantidad')
+        descripcion = request.POST.get('descripcion', '')
+        
+        # Si es entrada individual
+        if producto_id and cantidad:
+            try:
+                producto = Producto.objects.get(id=producto_id, activo=True)
+                cantidad = int(cantidad)
+                
+                if cantidad <= 0:
+                    messages.error(request, 'La cantidad debe ser mayor a 0')
+                    return redirect('productos:entrada')
+                
+                # Actualizar stock
+                producto.cantidad = F('cantidad') + cantidad
+                producto.save()
+                
+                # Registrar movimiento
+                MovimientoInventario.objects.create(
+                    producto=producto,
+                    tipo='entrada',
+                    cantidad=cantidad,
+                    precio_unitario=producto.precio,
+                    total=producto.precio * cantidad,
+                    descripcion=descripcion or f'Entrada de {cantidad} unidades de {producto.nombre}',
+                    usuario=request.user
+                )
+                
+                messages.success(request, f'✅ Entrada de {cantidad} unidades de "{producto.nombre}" registrada exitosamente.')
+                return redirect('productos:movimientos')
+                
+            except Producto.DoesNotExist:
+                messages.error(request, 'Producto no encontrado')
+            except ValueError:
+                messages.error(request, 'Cantidad inválida')
+        
+        # Si es entrada por lote (desde el carrito)
+        elif request.POST.get('entrada_lote') == 'true':
+            try:
+                items = json.loads(request.POST.get('items', '[]'))
+                
+                if not items:
+                    messages.error(request, 'No hay productos en la lista')
+                    return redirect('productos:entrada')
+                
+                with transaction.atomic():
+                    for item in items:
+                        producto = Producto.objects.get(id=item['id'], activo=True)
+                        cantidad = int(item['cantidad'])
+                        
+                        producto.cantidad = F('cantidad') + cantidad
+                        producto.save()
+                        
+                        MovimientoInventario.objects.create(
+                            producto=producto,
+                            tipo='entrada',
+                            cantidad=cantidad,
+                            precio_unitario=producto.precio,
+                            total=producto.precio * cantidad,
+                            descripcion=item.get('descripcion', f'Entrada de {cantidad} unidades de {producto.nombre}'),
+                            usuario=request.user
+                        )
+                
+                messages.success(request, f'✅ Entrada de {len(items)} productos registrada exitosamente.')
+                return redirect('productos:movimientos')
+                
+            except json.JSONDecodeError:
+                messages.error(request, 'Error al procesar los datos')
+            except Producto.DoesNotExist:
+                messages.error(request, 'Producto no encontrado en la lista')
+            except Exception as e:
+                messages.error(request, f'Error al procesar: {str(e)}')
+    
+    # GET - Mostrar formulario
     context = {
         'productos': Producto.objects.filter(activo=True).order_by('nombre'),
-        'categorias': Categoria.objects.all().order_by('nombre'), # <--- AGREGADO
+        'categorias': Categoria.objects.all().order_by('nombre'),
         'titulo': 'Registrar Entrada de Mercancía'
     }
     context.update(get_user_context(request))
