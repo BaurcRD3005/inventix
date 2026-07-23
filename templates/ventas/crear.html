@@ -131,13 +131,13 @@
                         <div id="scanner-status" class="scanner-status">📷 Haz clic en "Escanear QR" para activar la cámara</div>
                         
                         <div class="scanner-controls">
-                            <button id="start-qr-scanner" class="btn btn-success btn-sm">
+                            <button type="button" id="start-qr-scanner" class="btn btn-success btn-sm">
                                 <i class="fas fa-play"></i> Iniciar Escáner
                             </button>
-                            <button id="stop-qr-scanner" class="btn btn-danger btn-sm" disabled>
+                            <button type="button" id="stop-qr-scanner" class="btn btn-danger btn-sm" disabled>
                                 <i class="fas fa-stop"></i> Detener
                             </button>
-                            <button id="manual-qr-input-btn" class="btn btn-info btn-sm">
+                            <button type="button" id="manual-qr-input-btn" class="btn btn-info btn-sm">
                                 <i class="fas fa-keyboard"></i> Manual
                             </button>
                         </div>
@@ -147,7 +147,7 @@
                             <div class="input-group input-group-sm">
                                 <input type="text" id="codigo-qr-manual" class="form-control" 
                                        placeholder="Ingresa el código QR manualmente">
-                                <button id="buscar-qr-manual" class="btn btn-primary">
+                                <button type="button" id="buscar-qr-manual" class="btn btn-primary">
                                     <i class="fas fa-search"></i> Buscar
                                 </button>
                             </div>
@@ -246,7 +246,7 @@
                     <li class="mb-3">
                         <i class="fas fa-qrcode text-success"></i>
                         <strong>Escáner QR:</strong>
-                        Escanea el código QR del producto para agregarlo
+                        Escanea los códigos QR de los productos consecutivamente
                     </li>
                     <li class="mb-3">
                         <i class="fas fa-keyboard text-primary"></i>
@@ -282,8 +282,7 @@
 </div>
 
 <!-- QuaggaJS para QR -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js">
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 
 <script>
     // ==========================================
@@ -329,25 +328,24 @@
     
     function agregarProducto(productoId, cantidad, nombre, precio) {
         if (productoId !== undefined) {
-            const existe = productosSeleccionados.some(p => p.id === productoId);
-            if (existe) {
-                mostrarToast('⚠️ Producto ya agregado');
-                return;
+            const index = productosSeleccionados.findIndex(p => p.id === productoId);
+            if (index !== -1) {
+                productosSeleccionados[index].cantidad += cantidad;
+                productosSeleccionados[index].subtotal = productosSeleccionados[index].cantidad * precio;
+            } else {
+                const subtotal = precio * cantidad;
+                productosSeleccionados.push({
+                    id: productoId,
+                    nombre: nombre,
+                    cantidad: cantidad,
+                    precio: precio,
+                    subtotal: subtotal
+                });
             }
-            
-            const subtotal = precio * cantidad;
-            productosSeleccionados.push({
-                id: productoId,
-                nombre: nombre,
-                cantidad: cantidad,
-                precio: precio,
-                subtotal: subtotal
-            });
             
             actualizarTabla();
             calcularTotal();
-            limpiarSeleccion();
-            mostrarToast(`✅ ${nombre} agregado (${cantidad} uds.)`, `$${subtotal.toFixed(2)}`);
+            mostrarToast(`✅ ${nombre} agregado (${cantidad} uds.)`, `$${(precio * cantidad).toFixed(2)}`);
             return;
         }
         
@@ -370,25 +368,25 @@
             return;
         }
         
-        const existe = productosSeleccionados.some(p => p.id === parseInt(productoIdSelect));
-        if (existe) {
-            alert('Este producto ya está en la lista');
-            return;
+        const index = productosSeleccionados.findIndex(p => p.id === parseInt(productoIdSelect));
+        if (index !== -1) {
+            productosSeleccionados[index].cantidad += cantidadVal;
+            productosSeleccionados[index].subtotal = productosSeleccionados[index].cantidad * precioSelect;
+        } else {
+            const subtotal = precioSelect * cantidadVal;
+            productosSeleccionados.push({
+                id: parseInt(productoIdSelect),
+                nombre: productoNombre,
+                cantidad: cantidadVal,
+                precio: precioSelect,
+                subtotal: subtotal
+            });
         }
-        
-        const subtotal = precioSelect * cantidadVal;
-        productosSeleccionados.push({
-            id: parseInt(productoIdSelect),
-            nombre: productoNombre,
-            cantidad: cantidadVal,
-            precio: precioSelect,
-            subtotal: subtotal
-        });
         
         actualizarTabla();
         calcularTotal();
         limpiarSeleccion();
-        mostrarToast(`✅ ${productoNombre} agregado`, `$${subtotal.toFixed(2)}`);
+        mostrarToast(`✅ ${productoNombre} agregado`, `$${(precioSelect * cantidadVal).toFixed(2)}`);
     }
     
     function actualizarTabla() {
@@ -479,8 +477,6 @@
     // ==========================================
     // ESCÁNER QR
     // ==========================================
-    
-    // Mostrar/Ocultar escáner QR
     document.getElementById('toggle-qr-scanner').addEventListener('click', function() {
         const container = document.getElementById('scanner-container');
         if (qrVisible) {
@@ -517,7 +513,6 @@
             });
     }
 
-    // Iniciar escáner QR
     document.getElementById('start-qr-scanner').addEventListener('click', function() {
         const cameraId = this.dataset.cameraId;
         if (!cameraId) {
@@ -550,7 +545,7 @@
             video.srcObject = mediaStream;
             video.play();
             
-            document.getElementById('scanner-status').textContent = ' Cámara activa - Escaneando QR...';
+            document.getElementById('scanner-status').textContent = '📷 Cámara activa - Escaneando QR...';
             document.getElementById('scanner-overlay').style.display = 'block';
             qrScannerRunning = true;
             
@@ -567,7 +562,7 @@
     }
 
     function escanearQR() {
-        if (!qrScannerRunning) return;
+        if (!qrScannerRunning || qrCodigoDetectado) return;
         
         const video = document.getElementById('scanner-video');
         const canvas = document.getElementById('scanner-canvas');
@@ -605,96 +600,51 @@
             if (result && result.codeResult && !qrCodigoDetectado) {
                 const code = result.codeResult.code;
                 if (code) {
-                    qrCodigoDetectado = true;
+                    qrCodigoDetectado = true; // Bloquea lecturas repetitivas momentáneamente
                     console.log('📦 QR detectado:', code);
                     document.getElementById('scanner-status').textContent = '✅ QR detectado: ' + code;
                     if (navigator.vibrate) navigator.vibrate(200);
                     buscarProductoPorQR(code);
-                    detenerQREscanner();
                 }
             }
         });
     }
 
-    // ventas/crear.html - Reemplazar la función buscarProductoPorQR
-
-function buscarProductoPorQR(codigo) {
-    document.getElementById('scanner-status').textContent = 'Buscando producto...';
-    
-    fetch(`/ventas/api/buscar-qr/?codigo=${encodeURIComponent(codigo)}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // ==========================================
-                // VENTA RÁPIDA: Procesar inmediatamente
-                // ==========================================
-                // 1. Agregar a la tabla visual
-                agregarProducto(data.id, 1, data.nombre, data.precio);
-                document.getElementById('scanner-status').textContent = `✅ Producto agregado: ${data.nombre}`;
-                
-                // 2. FINALIZAR VENTA AUTOMÁTICAMENTE
-                setTimeout(() => {
-                    // Obtener el producto de la lista
-                    const producto = productosSeleccionados.find(p => p.id === data.id);
-                    if (producto) {
-                        // Enviar venta al servidor
-                        const form = document.getElementById('form-venta');
-                        // Limpiar campos ocultos anteriores
-                        form.querySelectorAll('input[name="producto_id[]"]').forEach(el => el.remove());
-                        form.querySelectorAll('input[name="cantidad[]"]').forEach(el => el.remove());
-                        form.querySelectorAll('input[name="precio[]"]').forEach(el => el.remove());
-                        
-                        // Agregar el producto actual
-                        const inputId = document.createElement('input');
-                        inputId.type = 'hidden';
-                        inputId.name = 'producto_id[]';
-                        inputId.value = producto.id;
-                        form.appendChild(inputId);
-                        
-                        const inputCantidad = document.createElement('input');
-                        inputCantidad.type = 'hidden';
-                        inputCantidad.name = 'cantidad[]';
-                        inputCantidad.value = producto.cantidad;
-                        form.appendChild(inputCantidad);
-                        
-                        const inputPrecio = document.createElement('input');
-                        inputPrecio.type = 'hidden';
-                        inputPrecio.name = 'precio[]';
-                        inputPrecio.value = producto.precio;
-                        form.appendChild(inputPrecio);
-                        
-                        // Enviar el formulario automáticamente
-                        form.submit();
-                    }
-                }, 500); // Esperar medio segundo para mostrar el toast
-                
-                // Cerrar escáner
-                setTimeout(() => {
-                    document.getElementById('scanner-container').style.display = 'none';
-                    qrVisible = false;
-                    document.getElementById('scanner-overlay').style.display = 'none';
-                }, 1500);
-                
-            } else {
-                document.getElementById('scanner-status').textContent = '❌ ' + data.message;
-                mostrarToast('❌ ' + data.message);
-                qrCodigoDetectado = false;
-                // Reactivar escáner para seguir escaneando
+    function buscarProductoPorQR(codigo) {
+        document.getElementById('scanner-status').textContent = 'Buscando producto...';
+        
+        fetch(`/ventas/api/buscar-qr/?codigo=${encodeURIComponent(codigo)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Agrega a la tabla sin finalizar la venta
+                    agregarProducto(data.id, 1, data.nombre, data.precio);
+                    document.getElementById('scanner-status').textContent = `✅ Agregado: ${data.nombre}. Escanea el siguiente...`;
+                    
+                    // Reactiva el escáner tras 1.5 segundos para permitir escanear otro producto
+                    setTimeout(() => {
+                        qrCodigoDetectado = false;
+                        if (qrScannerRunning) {
+                            document.getElementById('scanner-status').textContent = '📷 Cámara activa - Escaneando QR...';
+                        }
+                    }, 1500);
+                } else {
+                    document.getElementById('scanner-status').textContent = '❌ ' + data.message;
+                    mostrarToast('❌ ' + data.message);
+                    
+                    setTimeout(() => {
+                        qrCodigoDetectado = false;
+                    }, 1500);
+                }
+            })
+            .catch(error => {
+                document.getElementById('scanner-status').textContent = '❌ Error de conexión';
+                mostrarToast('❌ Error al buscar producto');
                 setTimeout(() => {
                     qrCodigoDetectado = false;
-                    if (!qrScannerRunning) {
-                        const cameraId = document.getElementById('start-qr-scanner').dataset.cameraId;
-                        if (cameraId) iniciarQREscanner(cameraId);
-                    }
-                }, 1000);
-            }
-        })
-        .catch(error => {
-            document.getElementById('scanner-status').textContent = '❌ Error: ' + error.message;
-            mostrarToast('❌ Error al buscar producto');
-            qrCodigoDetectado = false;
-        });
-}
+                }, 1500);
+            });
+    }
 
     function detenerQREscanner() {
         qrScannerRunning = false;
@@ -719,7 +669,6 @@ function buscarProductoPorQR(codigo) {
         document.getElementById('scanner-overlay').style.display = 'none';
         
         document.getElementById('scanner-status').textContent = '⏹️ Escáner detenido';
-        console.log('⏹️ Escáner QR detenido');
     }
 
     document.getElementById('stop-qr-scanner').addEventListener('click', detenerQREscanner);
@@ -777,7 +726,6 @@ function buscarProductoPorQR(codigo) {
         document.getElementById('scanner-container').style.display = 'none';
         document.getElementById('scanner-overlay').style.display = 'none';
         
-        // Si hay producto seleccionado desde URL
         const urlParams = new URLSearchParams(window.location.search);
         const productoId = urlParams.get('producto');
         if (productoId) {
@@ -789,13 +737,8 @@ function buscarProductoPorQR(codigo) {
                 }
             }
             actualizarPrecio();
-            document.getElementById('id_cantidad').value = 1;
-            agregarProducto();
+            document.getElementById('id_cantidad').focus();
         }
-    });
-
-    window.addEventListener('beforeunload', function() {
-        detenerQREscanner();
     });
 </script>
 {% endblock %}
