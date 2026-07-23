@@ -29,7 +29,7 @@
         <select name="categoria" class="form-select">
             <option value="">Todas las categorías</option>
             {% for categoria in form.categoria.field.queryset %}
-                <option value="{{ categoria.id }}" {% if form.categoria.value == categoria.id %}selected{% endif %}>
+                <option value="{{ categoria.id }}" {% if form.categoria.value == categoria.id|stringformat:"s" %}selected{% endif %}>
                     {{ categoria.nombre }}
                 </option>
             {% endfor %}
@@ -116,7 +116,6 @@
                         </tr>
                     {% empty %}
                         <tr>
-                            <!-- Reducido el colspan a 7 (con admin) o 6 (sin admin) ya que quitamos la columna Código -->
                             <td colspan="{% if user.perfil.rol == 'admin' %}7{% else %}6{% endif %}" class="text-center py-4">
                                 <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">No hay productos registrados</p>
@@ -132,42 +131,9 @@
             </table>
         </div>
         
-        <!-- Paginación de 5 en 5 -->
+        <!-- Paginación única -->
         {% if page_obj.has_other_pages %}
             <nav class="mt-3">
-                <ul class="pagination justify-content-center">
-                    {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                                Anterior
-                            </a>
-                        </li>
-                    {% endif %}
-                    
-                    {% for num in page_obj.paginator.page_range %}
-                        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
-                            <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                                {{ num }}
-                            </a>
-                        </li>
-                    {% endfor %}
-                    
-                    {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                                Siguiente
-                            </a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </nav>
-        {% endif %}
-    </div>
-</div>
-        
-        <!-- Paginación -->
-        {% if page_obj.has_other_pages %}
-            <nav>
                 <ul class="pagination justify-content-center">
                     {% if page_obj.has_previous %}
                         <li class="page-item">
