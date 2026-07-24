@@ -169,3 +169,16 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
 
 STOCK_MINIMO = 5
+
+# ==========================================
+# CONFIGURACIÓN DE PRODUCCIÓN (RENDER)
+# ==========================================
+# Si estás en Render, DESACTIVA DEBUG por seguridad (puedes usar un .env o dejarlo basado en variables)
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+
+# Configuración adicional de seguridad para producción con HTTPS en Render
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
