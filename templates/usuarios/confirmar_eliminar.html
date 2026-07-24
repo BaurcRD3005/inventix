@@ -1,39 +1,87 @@
-<!-- templates/usuarios/confirmar_eliminar.html -->
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Eliminar Usuario - Inventix{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card border-danger">
-            <div class="card-header bg-danger text-white">
-                <h4><i class="fas fa-exclamation-triangle"></i> Confirmar Eliminación</h4>
+<div class="max-w-xl mx-auto space-y-6">
+    
+    <!-- Tarjeta Principal de Advertencia -->
+    <div class="bg-white rounded-2xl shadow-sm border border-red-100 overflow-hidden">
+        
+        <!-- Encabezado de Advertencia -->
+        <div class="p-6 bg-gradient-to-r from-red-600 to-rose-700 text-white flex items-center gap-3.5">
+            <div class="p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/10 text-white">
+                <svg class="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
             </div>
-            <div class="card-body">
-                <p class="lead">¿Estás seguro de que deseas eliminar al siguiente usuario?</p>
-                <div class="alert alert-warning">
-                    <strong>{{ user.username }}</strong>
-                    <br>
-                    <small>Rol: {{ user.perfil.get_rol_display }}</small>
-                    <br>
-                    <small>Email: {{ user.email|default:"-" }}</small>
-                </div>
-                <p class="text-danger">
-                    <i class="fas fa-exclamation-circle"></i> Esta acción no se puede deshacer.
-                </p>
-                
-                <form method="post">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash"></i> Sí, eliminar
-                    </button>
-                    <a href="{% url 'usuarios:lista' %}" class="btn btn-secondary">
-                        <i class="fas fa-times"></i> Cancelar
-                    </a>
-                </form>
+            <div>
+                <h1 class="text-lg font-black tracking-tight">Confirmar Eliminación</h1>
+                <p class="text-xs text-red-100">Esta acción es irreversible y eliminará los datos del sistema</p>
             </div>
         </div>
+
+        <!-- Cuerpo de la Tarjeta -->
+        <div class="p-8 space-y-6">
+            
+            {% if user.is_superuser %}
+                <!-- Alerta de Protección exclusiva para Superusuarios -->
+                <div class="bg-amber-50 p-4 rounded-2xl border border-amber-200 text-amber-900 text-xs space-y-2">
+                    <div class="font-bold flex items-center gap-1.5 text-amber-800 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        Acción Restringida
+                    </div>
+                    <p>El usuario <strong>{{ user.username }}</strong> es un Superusuario y está protegido contra la eliminación del sistema.</p>
+                </div>
+                
+                <div class="flex items-center justify-end pt-2">
+                    <a href="{% url 'usuarios:lista' %}" class="px-6 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition-all shadow-sm">
+                        Regresar a la lista
+                    </a>
+                </div>
+            {% else %}
+                <!-- Formulario normal para eliminar administradores normales o empleados -->
+                <div class="space-y-2">
+                    <p class="text-xs font-bold uppercase tracking-wider text-gray-500">¿Estás seguro de que deseas eliminar al usuario?</p>
+                </div>
+
+                <!-- Caja Única de Información del Usuario -->
+                <div class="bg-red-50/60 rounded-2xl p-5 border border-red-100 space-y-4">
+                    <div class="flex items-center gap-3.5">
+                        <!-- Iniciales dinámicas del usuario -->
+                        <div class="w-11 h-11 rounded-xl bg-red-100 text-red-700 flex items-center justify-center font-black text-sm uppercase shadow-sm border border-red-200/50">
+                            {{ user.username|slice:":2" }}
+                        </div>
+                        <div>
+                            <h2 class="text-xs font-bold uppercase tracking-wider text-gray-900">{{ user.username }}</h2>
+                            <p class="text-xs text-gray-500">{{ user.email|default:"Sin correo electrónico registrado" }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-3 border-t border-red-100/60 flex items-center justify-between text-xs font-medium text-gray-600">
+                        <span class="inline-flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-red-100 shadow-sm">
+                            <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                            Rol del sistema: <strong class="text-gray-900 font-bold">{{ user.perfil.get_rol_display|default:"No especificado" }}</strong>
+                        </span>
+                    </div>
+                </div>
+
+                <form method="post" class="pt-2">
+                    {% csrf_token %}
+                    <div class="flex items-center justify-end gap-3">
+                        <a href="{% url 'usuarios:lista' %}" class="px-5 py-2.5 bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 text-xs font-bold rounded-xl transition-all shadow-sm">
+                            Cancelar
+                        </a>
+                        <button type="submit" class="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-red-100 flex items-center gap-2">
+                            Sí, eliminar usuario
+                        </button>
+                    </div>
+                </form>
+            {% endif %}
+
+        </div>
+
     </div>
 </div>
 {% endblock %}

@@ -4,53 +4,85 @@
 {% block title %}Productos con Stock Bajo - Inventix{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="fas fa-exclamation-triangle"></i> Productos con Stock Bajo</h1>
-    <span class="badge bg-danger fs-6">{{ total_bajos }} productos</span>
-</div>
+<div class="max-w-7xl mx-auto space-y-6">
+    
+    <!-- Encabezado superior -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-6 rounded-2xl shadow-sm border border-gray-200 gap-4 no-print">
+        <div class="flex items-center gap-3">
+            <div class="p-3 bg-red-50 text-red-600 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-black tracking-tight text-gray-900">Productos con Stock Bajo</h1>
+                <p class="text-xs text-gray-500">Artículos críticos que requieren reabastecimiento en inventario</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="px-4 py-2 bg-red-50 text-red-600 border border-red-100 text-xs font-bold rounded-xl">
+                {{ total_bajos }} productos críticos
+            </span>
+            <button onclick="window.print()" class="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl shadow transition-all flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                Imprimir Lista
+            </button>
+        </div>
+    </div>
 
-<div class="card">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
+    <!-- Título exclusivo para impresión -->
+    <div class="print-header hidden print:block text-center mb-6">
+        <h2 class="text-2xl font-black uppercase">Inventix - Reporte de Stock Bajo</h2>
+        <p class="text-xs text-gray-600">Listado oficial de productos agotados o por debajo del mínimo</p>
+    </div>
+
+    <!-- Tabla de contenido -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden print-card">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr>
-                        <th>Código</th>
-                        <th>Nombre</th>
-                        <th>Categoría</th>
-                        <th>Cantidad</th>
-                        <th>Cantidad Mínima</th>
-                        <th>Acciones</th>
+                    <tr class="bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                        <th class="py-3 px-6">Nombre</th>
+                        <th class="py-3 px-6">Categoría</th>
+                        <th class="py-3 px-6 text-center">Cantidad Actual</th>
+                        <th class="py-3 px-6 text-center">Mínimo Requerido</th>
+                        <th class="py-3 px-6 text-right no-print">Acción</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-gray-100 text-sm">
                     {% for producto in productos_bajos %}
-                        <tr class="table-danger">
-                            <td>
-                                <span class="badge bg-secondary">
-                                    {{ producto.codigo_barras|default:"N/A" }}
+                        <tr class="hover:bg-red-50/30 transition-colors">
+                            <td class="py-4 px-6 font-semibold text-gray-900">
+                                {{ producto.nombre }}
+                            </td>
+                            <td class="py-4 px-6 text-gray-600 text-xs">
+                                {{ producto.categoria.nombre|default:"Sin categoría" }}
+                            </td>
+                            <td class="py-4 px-6 text-center">
+                                <span class="inline-flex items-center px-2.5 py-1 bg-red-100 text-red-700 font-bold text-xs rounded-lg">
+                                    {{ producto.cantidad }}
                                 </span>
                             </td>
-                            <td><strong>{{ producto.nombre }}</strong></td>
-                            <td>{{ producto.categoria.nombre|default:"Sin categoría" }}</td>
-                            <td>
-                                <span class="badge bg-danger fs-6">{{ producto.cantidad }}</span>
+                            <td class="py-4 px-6 text-center text-gray-600 font-mono text-xs">
+                                {{ producto.cantidad_minima }}
                             </td>
-                            <td>{{ producto.cantidad_minima }}</td>
-                            <td>
-                                <a href="{% url 'productos:editar' producto.id %}" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-edit"></i> Editar
-                                </a>
-                                <a href="{% url 'productos:entrada' %}" class="btn btn-sm btn-success">
-                                    <i class="fas fa-arrow-down"></i> Entrada
+                            <td class="py-4 px-6 text-right no-print">
+                                <a href="{% url 'productos:entrada' %}" class="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all shadow-sm">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                                    Ingresar mercancía
                                 </a>
                             </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center py-4">
-                                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                                <p class="text-success">¡No hay productos con stock bajo!</p>
+                            <td colspan="5" class="text-center py-12">
+                                <div class="flex flex-col items-center justify-center space-y-3">
+                                    <div class="p-4 bg-emerald-50 text-emerald-600 rounded-full">
+                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    </div>
+                                    <p class="text-sm font-bold text-emerald-700">¡Excelente! No hay productos con stock bajo</p>
+                                    <p class="text-xs text-gray-400">Todo tu inventario se encuentra en niveles óptimos.</p>
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}
@@ -59,4 +91,21 @@
         </div>
     </div>
 </div>
+
+<!-- Estilos específicos para impresión limpia del reporte -->
+<style>
+    @media print {
+        body {
+            background-color: white !important;
+            color: black !important;
+        }
+        .no-print, header, footer, nav {
+            display: none !important;
+        }
+        .print-card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+    }
+</style>
 {% endblock %}

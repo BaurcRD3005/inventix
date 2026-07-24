@@ -5,7 +5,7 @@ from .models import Producto, Categoria, MovimientoInventario
 class ProductoForm(forms.ModelForm):
     class Meta:
         model = Producto
-        # Agregamos 'formato' y 'piezas_por_caja' a la lista de campos
+        # 'cantidad' ha sido removido de aquí para que el stock inicial siempre comience en 0
         fields = [
             'codigo_barras', 
             'nombre', 
@@ -14,7 +14,6 @@ class ProductoForm(forms.ModelForm):
             'categoria', 
             'formato', 
             'piezas_por_caja', 
-            'cantidad', 
             'cantidad_minima', 
             'imagen'
         ]
@@ -26,7 +25,6 @@ class ProductoForm(forms.ModelForm):
             'categoria': forms.Select(attrs={'class': 'form-select'}),
             'formato': forms.Select(attrs={'class': 'form-select'}),
             'piezas_por_caja': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
-            'cantidad': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
             'cantidad_minima': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
             'imagen': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }

@@ -1,528 +1,462 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Escáner para Registrar Productos - Inventix{% endblock %}
+{% block title %}Registrar Entrada - Inventix{% endblock %}
 
 {% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 <style>
-    /* ==========================================================================
-       ESTILOS DEL ESCÁNER (VISOR INTERACTIVO CON LENTE Y LÁSER)
-       ========================================================================== */
-    
-    #scanner-container {
-        position: relative;
-        width: 100%;
-        max-width: 500px;
-        height: 350px;
-        margin: 0 auto;
-        background: #000;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        border: 3px solid #0d6efd; /* Borde azul de enfoque principal */
+    .select2-container--bootstrap-5 .select2-selection {
+        background-color: #f9fafb !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 0.75rem !important;
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.75rem !important;
+        font-weight: 500 !important;
+        color: #111827 !important;
+        min-height: 38px !important;
     }
-    
-    /* Ajustar el video interactivo capturado por QuaggaJS */
-    #scanner video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-    }
-    
-    #scanner {
-        width: 100%;
-        height: 100%;
-    }
-    
-    /* Capa oscura superpuesta sobre el video (Efecto lente) */
-    .scanner-laser-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none; /* Deja pasar los eventos de clic táctiles/ratón */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0, 0, 0, 0.25); 
-        z-index: 10;
-    }
-
-    /* Círculo de Enfoque Inteligente (El Lente) */
-    .scanner-target-circle {
-        width: 160px;
-        height: 160px;
-        border: 3px dashed rgba(13, 110, 253, 0.85); /* Línea punteada azul */
-        border-radius: 50%;
-        box-shadow: 0 0 20px rgba(13, 110, 253, 0.6);
-        animation: pulseCircle 2s infinite ease-in-out;
-    }
-
-    /* Línea de Escaneo Láser Roja */
-    .scanner-laser-line {
-        position: absolute;
-        left: 5%;
-        width: 90%;
-        height: 3px;
-        background: linear-gradient(90deg, transparent, #ff003c, #ff003c, transparent);
-        box-shadow: 0 0 12px #ff003c, 0 0 4px #ff003c;
-        animation: scanMotion 2s infinite linear;
-    }
-
-    /* Animaciones CSS */
-    @keyframes scanMotion {
-        0% {
-            top: 15%;
-        }
-        50% {
-            top: 85%;
-        }
-        100% {
-            top: 15%;
-        }
-    }
-
-    @keyframes pulseCircle {
-        0%, 100% {
-            transform: scale(1);
-            opacity: 0.7;
-        }
-        50% {
-            transform: scale(1.08);
-            opacity: 1;
-        }
-    }
-    
-    /* Controles y Ajustes de la Interfaz */
-    .scanner-controls {
-        display: flex;
-        gap: 12px;
-        justify-content: center;
-        margin-top: 1.5rem;
-        flex-wrap: wrap;
-    }
-    
-    .result-box {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-top: 1.5rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        display: none;
-        animation: fadeIn 0.3s ease-in-out;
-    }
-    
-    .producto-encontrado {
-        border-left: 5px solid #198754;
-        background: #f8fff9;
-        padding: 1.25rem;
-        border-radius: 8px;
-    }
-    
-    .producto-no-encontrado {
-        border-left: 5px solid #ffc107;
-        background: #fffdf5;
-        padding: 1.25rem;
-        border-radius: 8px;
-    }
-    
-    .info-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 8px 0;
-        border-bottom: 1px solid #e5e7eb;
-    }
-    
-    .info-row:last-child {
-        border-bottom: none;
-    }
-    
-    .info-label {
-        font-weight: 600;
-        color: #4B5563;
-    }
-    
-    .info-value {
-        color: #1F2937;
-    }
-    
-    .btn-accion {
-        margin: 5px;
-        min-width: 130px;
-    }
-
-    #manual-input {
-        display: none;
-        animation: fadeIn 0.3s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
+    .select2-container--bootstrap-5 .select2-selection:focus {
+        background-color: #ffffff !important;
+        border-color: #111827 !important;
+        outline: none !important;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-8 col-md-10">
-        <div class="card shadow-sm border-0">
-            <!-- Encabezado de la Tarjeta -->
-            <div class="card-header bg-primary py-3">
-                <h4 class="mb-0 text-white d-flex align-items-center">
-                    <i class="fas fa-camera me-2"></i> Escáner para Registrar Productos
-                </h4>
+<div class="max-w-7xl mx-auto space-y-6">
+    
+    <!-- Encabezado superior -->
+    <div class="flex items-center justify-between bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <div class="flex items-center gap-3">
+            <div class="p-3 bg-gray-100 text-gray-800 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-6 9l2 2 4-4"></path>
+                </svg>
             </div>
-            
-            <!-- Cuerpo Principal -->
-            <div class="card-body p-4">
-                <div class="alert alert-info border-0 shadow-sm mb-4">
-                    <div class="d-flex">
-                        <div class="me-2">
-                            <i class="fas fa-info-circle fa-lg mt-1"></i>
-                        </div>
-                        <div>
-                            <strong>Instrucciones de Uso:</strong>
-                            <ul class="mb-0 mt-2">
-                                <li>Escanea el código de barras apuntándolo con la cámara.</li>
-                                <li>Si el producto <strong>NO existe</strong>, podrás crearlo directamente.</li>
-                                <li>Si el producto <strong>YA existe</strong>, verás sus datos y podrás editarlo o añadir stock.</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
+            <div>
+                <h1 class="text-xl font-black tracking-tight text-gray-900">Registro Masivo de Entradas</h1>
+                <p class="text-xs text-gray-500">Escanea o selecciona productos para acumularlos en el lote de entrada</p>
+            </div>
+        </div>
+        <a href="{% url 'productos:lista' %}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-all flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Volver al Inventario
+        </a>
+    </div>
+
+    <!-- Contenido Principal Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Columna Izquierda: Escaneo y Captura Individual (5 columnas) -->
+        <div class="lg:col-span-5 space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 
-                <!-- Selector de Cámara -->
-                <div class="mb-4">
-                    <label class="form-label fw-bold text-secondary">
-                        <i class="fas fa-video me-1"></i> Seleccionar cámara disponible:
-                    </label>
-                    <select id="camera-select" class="form-select">
-                        <option value="">Seleccionar cámara...</option>
-                    </select>
+                <div class="p-5 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-gray-800 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+                        1. Escaneo y Producto
+                    </h2>
                 </div>
-                
-                <!-- CONTENEDOR DEL ESCÁNER (Con el lente y láser animado) -->
-                <div id="scanner-container" class="mb-2">
-                    <div id="scanner"></div>
-                    <!-- Capa del Lente y el Láser -->
-                    <div class="scanner-laser-overlay">
-                        <div class="scanner-target-circle"></div>
-                        <div class="scanner-laser-line"></div>
-                    </div>
-                </div>
-                
-                <!-- Botones del Escáner -->
-                <div class="scanner-controls">
-                    <button id="start-scanner" class="btn btn-success px-4">
-                        <i class="fas fa-play me-1"></i> Iniciar Cámara
-                    </button>
-                    <button id="stop-scanner" class="btn btn-danger px-4">
-                        <i class="fas fa-stop me-1"></i> Detener
-                    </button>
-                    <button id="manual-input-btn" class="btn btn-info text-white px-4">
-                        <i class="fas fa-keyboard me-1"></i> Ingreso Manual
-                    </button>
-                </div>
-                
-                <!-- Entrada Manual Oculta -->
-                <div id="manual-input" class="mt-4">
-                    <div class="card border-info bg-light">
-                        <div class="card-body">
-                            <label class="form-label fw-bold text-info"><i class="fas fa-barcode me-1"></i> Código Manual</label>
-                            <div class="input-group">
-                                <input type="text" id="codigo-manual" class="form-control" 
-                                       placeholder="Escribe o copia el código de barras aquí...">
-                                <button id="buscar-manual" class="btn btn-primary">
-                                    <i class="fas fa-search me-1"></i> Buscar
+
+                <div class="p-6 space-y-4">
+                    <!-- Bloque de Escáner Estilo POS -->
+                    <div class="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl p-5 text-white shadow-lg space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="p-2 bg-white/10 rounded-lg">
+                                    <svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-sm">Escáner de Cámara Activo</h3>
+                                    <p id="scanner-status" class="text-xs text-indigo-300">Listo para capturar códigos de barras o QR</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="button" id="btn-toggle-camara" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow transition-all">
+                                    Abrir/Cerrar Cámara
                                 </button>
                             </div>
                         </div>
+
+                        <!-- Visor de Video / Contenedor del Escáner -->
+                        <div id="scanner-container" class="relative bg-black rounded-xl overflow-hidden hidden border border-indigo-500/30">
+                            <div id="scanner-overlay" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-1/2 border-2 border-emerald-400 rounded-xl pointer-events-none shadow-2xl hidden z-10 animate-pulse"></div>
+                            <div id="reader" class="w-full max-h-[220px] object-cover block mx-auto bg-black"></div>
+                        </div>
+
+                        <!-- Input Manual Rápido -->
+                        <div class="flex gap-2 pt-1">
+                            <input type="text" id="codigo-busqueda" class="w-full bg-white/10 border border-white/20 text-white placeholder-indigo-300 text-sm rounded-xl focus:ring-indigo-400 focus:border-indigo-400 block p-2.5" placeholder="Escribe el código o SKU y presiona Enter...">
+                        </div>
+                    </div>
+
+                    <!-- Formulario de Selección y Cantidades -->
+                    <form method="post" id="form-entrada-individual" class="space-y-4">
+                        {% csrf_token %}
+                        
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">Producto</label>
+                            <select id="id_producto" name="producto_id" class="form-select select-busqueda">
+                                <option value="">Seleccione o escriba producto...</option>
+                                {% for prod in productos %}
+                                    <option value="{{ prod.id }}" data-piezas-caja="{{ prod.piezas_por_caja|default:1 }}">{{ prod.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">Cantidad</label>
+                                <input type="number" id="cantidad-input" name="cantidad" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:bg-white focus:outline-none focus:border-gray-900 transition-colors" value="1" min="1">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">Tipo</label>
+                                <select id="tipo-unidad" name="tipo_unidad" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:bg-white focus:outline-none focus:border-gray-900 transition-colors">
+                                    <option value="pieza">Pieza</option>
+                                    <option value="lote">Lote / Caja</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">Nota</label>
+                            <textarea id="nota-input" name="descripcion" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:bg-white focus:outline-none focus:border-gray-900 transition-colors" rows="2" placeholder="Opcional..."></textarea>
+                        </div>
+
+                        <button type="submit" class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            Agregar a la Lista
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Columna Derecha: Tabla Carrito / Lote (7 columnas) -->
+        <div class="lg:col-span-7 space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col justify-between h-full">
+                <div>
+                    <div class="p-5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-gray-800 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            Productos Agregados (Entrada por Lote)
+                        </h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse" id="tabla-carrito">
+                            <thead>
+                                <tr class="bg-gray-50/50 border-b border-gray-200 text-gray-400 text-[10px] uppercase tracking-wider font-bold">
+                                    <th class="py-3 px-4">Producto</th>
+                                    <th class="py-3 px-4">Cant.</th>
+                                    <th class="py-3 px-4">Nota</th>
+                                    <th class="py-3 px-4 text-center">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 text-xs font-medium text-gray-700">
+                                <!-- Dinámico vía JS -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                
-                <!-- Resultados del Análisis del Código -->
-                <div id="resultado" class="result-box">
-                    <div id="resultado-content"></div>
-                </div>
-                
-                <!-- Enlace de Retorno -->
-                <div class="mt-4 pt-3 border-top">
-                    <a href="{% url 'productos:lista' %}" class="btn btn-light border w-100">
-                        <i class="fas fa-arrow-left me-1"></i> Volver al Catálogo
-                    </a>
+
+                <!-- Footer Proceso de Lote -->
+                <div class="p-6 bg-gray-50 border-t border-gray-200">
+                    <button type="button" class="w-full py-3 px-4 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700" id="btn-guardar-lote">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Procesar Entrada por Lote
+                    </button>
                 </div>
             </div>
         </div>
+
     </div>
 </div>
+{% endblock %}
 
-<!-- SDK de QuaggaJS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
 
 <script>
-    let scannerRunning = false;
+    let itemsLote = [];
+    let html5QrCode = null;
+    let cameraIsRunning = false;
+    let qrCodigoDetectado = false;
 
-    // Obtener las cámaras disponibles en el dispositivo
-    async function getCameras() {
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const videoDevices = devices.filter(device => device.kind === 'videoinput');
-            const select = document.getElementById('camera-select');
-            select.innerHTML = '<option value="">Seleccionar cámara...</option>';
-            
-            if (videoDevices.length === 0) {
-                select.innerHTML = '<option value="">No se encontraron cámaras de video</option>';
-                return;
-            }
-            
-            videoDevices.forEach((device, index) => {
-                const option = document.createElement('option');
-                option.value = device.deviceId;
-                option.text = device.label || `Cámara ${index + 1}`;
-                select.appendChild(option);
-            });
-            
-            // Priorizar la cámara trasera en móviles
-            const backCamera = videoDevices.find(d => 
-                d.label.toLowerCase().includes('back') || 
-                d.label.toLowerCase().includes('trasera')
-            );
-            if (backCamera) {
-                select.value = backCamera.deviceId;
-            } else if (videoDevices.length > 0) {
-                select.value = videoDevices[0].deviceId;
-            }
-        } catch (error) {
-            console.error('Error al cargar cámaras:', error);
-            document.getElementById('camera-select').innerHTML = '<option value="">Error al acceder a las cámaras</option>';
-        }
-    }
-
-    // Encender el escáner Quagga
-    function startScanner() {
-        const cameraId = document.getElementById('camera-select').value;
-        if (!cameraId) {
-            alert('Por favor, selecciona una cámara del menú desplegable primero.');
-            return;
-        }
-        
-        if (scannerRunning) stopScanner();
-        
-        document.getElementById('resultado').style.display = 'none';
-        
-        Quagga.init({
-            inputStream: {
-                name: "Live",
-                type: "LiveStream",
-                target: document.querySelector('#scanner'),
-                constraints: {
-                    deviceId: cameraId,
-                    width: { min: 640 },
-                    height: { min: 480 },
-                    facingMode: "environment"
+    $(document).ready(function() {
+        $('#id_producto').select2({
+            placeholder: "Seleccione o escriba producto...",
+            allowClear: true,
+            width: '100%',
+            theme: 'bootstrap-5',
+            ajax: {
+                url: "{% url 'productos:buscar_api' %}",
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return { q: params.term };
                 },
+                processResults: function (data) {
+                    const resultados = Array.isArray(data) ? data : (data.productos || data.results || []);
+                    return {
+                        results: resultados.map(item => ({
+                            id: item.id,
+                            text: item.nombre,
+                            piezas_por_caja: item.piezas_por_caja || 1
+                        }))
+                    };
+                },
+                cache: true
             },
-            decoder: {
-                readers: [
-                    "code_128_reader",
-                    "ean_reader",
-                    "ean_8_reader",
-                    "code_39_reader",
-                    "code_39_vin_reader",
-                    "codabar_reader",
-                    "upc_reader",
-                    "upc_e_reader",
-                    "i2of5_reader"
-                ]
-            },
-            locate: true,
-            numOfWorkers: 4,
-        }, function(err) {
-            if (err) {
-                alert('Error al inicializar el escáner: ' + err.message);
-                return;
-            }
-            Quagga.start();
-            scannerRunning = true;
-            document.getElementById('start-scanner').disabled = true;
-            document.getElementById('stop-scanner').disabled = false;
+            minimumInputLength: 1,
         });
-        
-        // Manejo del evento de detección exitosa
-        Quagga.onDetected(function(result) {
-            const code = result.codeResult.code;
-            if (code) {
-                procesarCodigo(code);
-                if (navigator.vibrate) navigator.vibrate(200); // Vibración háptica en smartphones
-            }
-        });
-    }
 
-    // Apagar el escáner Quagga
-    function stopScanner() {
-        if (scannerRunning) {
-            try { Quagga.stop(); } catch(e) {}
-            scannerRunning = false;
-            document.getElementById('start-scanner').disabled = false;
-            document.getElementById('stop-scanner').disabled = true;
+        actualizarTabla();
+    });
+    
+    const tipoUnidadSelect = document.getElementById('tipo-unidad');
+    const cantidadInput = document.getElementById('cantidad-input');
+
+    function gestionarCantidadSegunUnidad() {
+        if (tipoUnidadSelect.value === 'pieza') {
+            cantidadInput.value = 1;
+            cantidadInput.setAttribute('readonly', true);
+            cantidadInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+        } else {
+            cantidadInput.removeAttribute('readonly');
+            cantidadInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
         }
     }
 
-    // Consultar la base de datos de Django para comprobar la existencia del código
-    function procesarCodigo(codigo) {
-        const resultadoDiv = document.getElementById('resultado');
-        const contentDiv = document.getElementById('resultado-content');
-        
-        resultadoDiv.style.display = 'block';
-        contentDiv.innerHTML = `
-            <div class="text-center py-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Procesando...</span>
-                </div>
-                <p class="mt-3 mb-0 text-muted">Buscando producto con código: <strong class="text-dark">${codigo}</strong></p>
-            </div>
-        `;
-        
-        stopScanner(); // Apagar cámara mientras se consulta la base de datos
-        
-        fetch(`/productos/api/buscar-por-codigo/?codigo=${encodeURIComponent(codigo)}`)
+    tipoUnidadSelect.addEventListener('change', gestionarCantidadSegunUnidad);
+    gestionarCantidadSegunUnidad();
+
+    const btnToggleCamara = document.getElementById('btn-toggle-camara');
+    const scannerContainer = document.getElementById('scanner-container');
+
+    btnToggleCamara.addEventListener('click', function() {
+        if (!cameraIsRunning) {
+            scannerContainer.classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            
+            const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+            
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                config, 
+                onScanSuccess, 
+                onScanFailure
+            ).then(() => {
+                cameraIsRunning = true;
+                btnToggleCamara.textContent = "Cerrar Cámara";
+                btnToggleCamara.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
+                btnToggleCamara.classList.add('bg-red-600', 'hover:bg-red-700');
+            }).catch(err => {
+                console.error("Error al iniciar la cámara:", err);
+                alert("No se pudo iniciar la cámara.");
+                scannerContainer.classList.add('hidden');
+            });
+        } else {
+            detenerCamara();
+        }
+    });
+
+    function detenerCamara() {
+        if (html5QrCode && cameraIsRunning) {
+            html5QrCode.stop().then(() => {
+                cameraIsRunning = false;
+                scannerContainer.classList.add('hidden');
+                btnToggleCamara.textContent = "Abrir/Cerrar Cámara";
+                btnToggleCamara.classList.remove('bg-red-600', 'hover:bg-red-700');
+                btnToggleCamara.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+            }).catch(err => {
+                console.error("Error al detener la cámara:", err);
+            });
+        }
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+        if (qrCodigoDetectado) return;
+        qrCodigoDetectado = true;
+
+        document.getElementById('codigo-busqueda').value = decodedText;
+        buscarProducto(decodedText);
+        detenerCamara();
+
+        setTimeout(() => qrCodigoDetectado = false, 1500);
+    }
+
+    function onScanFailure(error) {}
+
+    document.getElementById('codigo-busqueda').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const codigo = this.value.trim();
+            if (!codigo) return;
+
+            buscarProducto(codigo);
+            this.value = '';
+        }
+    });
+
+    function buscarProducto(codigo) {
+        fetch(`/productos/api/buscar-barcode/?codigo=${encodeURIComponent(codigo)}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.exists) {
-                    contentDiv.innerHTML = `
-                        <div class="alert alert-success d-flex align-items-center mb-3">
-                            <i class="fas fa-check-circle me-2 fa-lg"></i>
-                            <div><strong>Producto Encontrado</strong></div>
-                        </div>
-                        <div class="producto-encontrado">
-                            <h4 class="text-success mb-3"><strong>${data.nombre}</strong></h4>
-                            <div class="row g-2">
-                                <div class="col-6 text-muted">Código de Barras:</div>
-                                <div class="col-6 fw-bold"><code>${data.codigo_barras}</code></div>
-                                <div class="col-6 text-muted">Precio de Venta:</div>
-                                <div class="col-6 fw-bold text-primary">$${data.precio}</div>
-                                <div class="col-6 text-muted">Stock Disponible:</div>
-                                <div class="col-6">
-                                    <span class="badge ${data.cantidad <= 5 ? 'bg-danger' : 'bg-success'}">
-                                        ${data.cantidad} unidades
-                                    </span>
-                                </div>
-                                <div class="col-6 text-muted">Categoría:</div>
-                                <div class="col-6 fw-bold">${data.categoria_nombre}</div>
-                            </div>
-                            ${data.cantidad <= 5 ? `
-                            <div class="alert alert-warning mt-3 mb-0">
-                                <i class="fas fa-exclamation-triangle me-1"></i>
-                                <strong>¡Nivel Crítico!</strong> Stock bajo (${data.cantidad} uds.)
-                            </div>` : ''}
-                        </div>
-                        <div class="text-center mt-4">
-                            <a href="/productos/editar/${data.id}/" class="btn btn-primary btn-accion">
-                                <i class="fas fa-edit me-1"></i> Editar Datos
-                            </a>
-                            <a href="/productos/entrada/?producto=${data.id}" class="btn btn-success btn-accion">
-                                <i class="fas fa-arrow-down me-1"></i> Entrada/Stock
-                            </a>
-                            <button onclick="reiniciarEscaneo()" class="btn btn-outline-secondary btn-accion">
-                                <i class="fas fa-sync me-1"></i> Otro Escaneo
-                            </button>
-                        </div>
-                    `;
-                } else if (data.success && !data.exists) {
-                    contentDiv.innerHTML = `
-                        <div class="alert alert-warning d-flex align-items-center mb-3">
-                            <i class="fas fa-plus-circle me-2 fa-lg"></i>
-                            <div><strong>Producto No Registrado</strong></div>
-                        </div>
-                        <div class="producto-no-encontrado text-center">
-                            <i class="fas fa-barcode fa-3x text-warning mb-2"></i>
-                            <p class="mb-3 text-muted">Código detectado: <code class="fs-5">${data.codigo}</code></p>
-                            <a href="/productos/crear/?codigo=${encodeURIComponent(data.codigo)}&from_scanner=1" 
-                               class="btn btn-warning px-4 text-white">
-                                <i class="fas fa-plus me-1"></i> Registrar como Nuevo
-                            </a>
-                        </div>
-                        <div class="mt-3">
-                            <button onclick="reiniciarEscaneo()" class="btn btn-outline-primary w-100">
-                                <i class="fas fa-sync me-1"></i> Escanear Otro Código
-                            </button>
-                        </div>
-                    `;
+                    const select = document.getElementById('id_producto');
+
+                    let optionExists = false;
+                    for (let option of select.options) {
+                        if (option.value == data.id) {
+                            optionExists = true;
+                            break;
+                        }
+                    }
+
+                    if (!optionExists) {
+                        const newOption = new Option(data.nombre, data.id, true, true);
+                        $(newOption).attr('data-piezas-caja', data.piezas_por_caja || 1);
+                        $(select).append(newOption);
+                    } else {
+                        select.value = data.id;
+                    }
+
+                    $(select).trigger('change');
+                    document.getElementById('codigo-busqueda').value = '';
+
+                    if (tipoUnidadSelect.value !== 'pieza') {
+                        document.getElementById('cantidad-input').focus();
+                    }
                 } else {
-                    contentDiv.innerHTML = `
-                        <div class="alert alert-danger">
-                            <h5><i class="fas fa-exclamation-circle me-1"></i> Error</h5>
-                            <p class="mb-0">${data.message || 'Ocurrió un error inesperado.'}</p>
-                            <button onclick="reiniciarEscaneo()" class="btn btn-outline-danger btn-sm mt-3">
-                                <i class="fas fa-sync me-1"></i> Reintentar
-                            </button>
-                        </div>
-                    `;
+                    alert('❌ Producto no encontrado.');
                 }
             })
             .catch(error => {
-                contentDiv.innerHTML = `
-                    <div class="alert alert-danger">
-                        <h5><i class="fas fa-exclamation-circle me-1"></i> Error de conexión</h5>
-                        <p class="mb-0">${error.message}</p>
-                        <button onclick="reiniciarEscaneo()" class="btn btn-outline-danger btn-sm mt-3">
-                            <i class="fas fa-sync me-1"></i> Reintentar
-                        </button>
-                    </div>
-                `;
+                console.error(error);
+                alert('❌ Error al buscar el producto');
             });
     }
 
-    function reiniciarEscaneo() {
-        document.getElementById('resultado').style.display = 'none';
-        startScanner();
+    document.querySelector('#form-entrada-individual').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const select = document.getElementById('id_producto');
+        const productoId = select.value;
+        const optionSelected = $(select).find('option:selected');
+        const productoNombre = optionSelected.text() || '';
+        const piezasPorCaja = parseInt(optionSelected.attr('data-piezas-caja')) || 1;
+        
+        const formato = tipoUnidadSelect.value;
+        const cantidad = formato === 'pieza' ? 1 : parseInt(document.getElementById('cantidad-input').value);
+        const nota = document.getElementById('nota-input').value;
+        
+        if (!productoId) {
+            alert('⚠️ Por favor selecciona un producto');
+            return;
+        }
+        
+        if (isNaN(cantidad) || cantidad < 1) {
+            alert('⚠️ Ingresa una cantidad válida');
+            return;
+        }
+        
+        if (itemsLote.some(item => item.id == productoId)) {
+            alert('⚠️ Este producto ya está en la lista');
+            return;
+        }
+
+        const piezasEquivalentes = formato === 'lote' ? (cantidad * piezasPorCaja) : cantidad;
+        
+        itemsLote.push({
+            id: parseInt(productoId),
+            nombre: productoNombre,
+            cantidad: cantidad,
+            piezas_equivalentes: piezasEquivalentes,
+            formato: formato,
+            piezas_por_caja: piezasPorCaja,
+            descripcion: nota || ''
+        });
+        
+        actualizarTabla();
+        limpiarCampos();
+    });
+
+    function actualizarTabla() {
+        const tbody = document.querySelector('#tabla-carrito tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (itemsLote.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-gray-400 text-xs">No hay productos agregados al lote aún.</td></tr>`;
+            return;
+        }
+        
+        itemsLote.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-gray-50/50 transition-colors";
+            tr.innerHTML = `
+                <td class="py-3 px-4 font-semibold text-gray-900">${item.nombre} <span class="text-[10px] font-normal text-indigo-600">(${item.formato})</span></td>
+                <td class="py-3 px-4">${item.cantidad} <span class="text-[10px] text-gray-400">(${item.piezas_equivalentes} pzas)</span></td>
+                <td class="py-3 px-4 text-gray-500">${item.descripcion || '-'}</td>
+                <td class="py-3 px-4 text-center">
+                    <button type="button" class="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors" onclick="eliminarFila(${index})">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
     }
 
-    // ==========================================
-    // CONTROLADORES DE EVENTOS DEL DOM
-    // ==========================================
-    document.getElementById('start-scanner').addEventListener('click', startScanner);
-    document.getElementById('stop-scanner').addEventListener('click', stopScanner);
-    
-    document.getElementById('manual-input-btn').addEventListener('click', function() {
-        const div = document.getElementById('manual-input');
-        if (div.style.display === 'none' || div.style.display === '') {
-            div.style.display = 'block';
-            document.getElementById('codigo-manual').focus();
-            stopScanner(); // Detiene la cámara al usar teclado manual
-        } else {
-            div.style.display = 'none';
-        }
-    });
-    
-    document.getElementById('buscar-manual').addEventListener('click', function() {
-        const codigo = document.getElementById('codigo-manual').value.trim();
-        if (codigo) {
-            procesarCodigo(codigo);
-            document.getElementById('codigo-manual').value = '';
-            document.getElementById('manual-input').style.display = 'none';
-        } else {
-            alert('Por favor, ingresa un código de barras válido.');
-        }
-    });
-    
-    document.getElementById('codigo-manual').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            document.getElementById('buscar-manual').click();
-        }
-    });
+    function eliminarFila(index) {
+        itemsLote.splice(index, 1);
+        actualizarTabla();
+    }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        getCameras();
-        document.getElementById('stop-scanner').disabled = true;
-        document.getElementById('manual-input').style.display = 'none';
-    });
+    function limpiarCampos() {
+        $('#id_producto').val(null).trigger('change');
+        gestionarCantidadSegunUnidad();
+        document.getElementById('nota-input').value = '';
+        document.getElementById('codigo-busqueda').focus();
+    }
 
-    window.addEventListener('beforeunload', function() {
-        stopScanner();
+    document.getElementById('btn-guardar-lote').addEventListener('click', function() {
+        if (itemsLote.length === 0) {
+            alert('⚠️ Agrega al menos un producto al lote.');
+            return;
+        }
+
+        if (!confirm('¿Deseas procesar la entrada masiva de este lote?')) return;
+
+        const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+
+        fetch("{% url 'productos:guardar_entrada_lote_api' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ productos: itemsLote })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                window.location.href = "{% url 'productos:movimientos' %}";
+            } else {
+                alert('❌ Error: ' + (data.message || 'No se pudo procesar el lote'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error de conexión con el servidor.');
+        });
     });
 </script>
 {% endblock %}

@@ -4,196 +4,203 @@
 {% block title %}Lista de Productos - Inventix{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="fas fa-box"></i> Productos</h1>
-    {% if user.perfil.rol == 'admin' %}
-    <div>
-        <a href="{% url 'productos:crear' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Nuevo Producto
-        </a>
-        <a href="{% url 'productos:entrada' %}" class="btn btn-success">
-            <i class="fas fa-arrow-down"></i> Entrada
-        </a>
-    </div>
-    {% endif %}
-</div>
+<div class="max-w-7xl mx-auto space-y-6">
+    
+    <!-- Encabezado superior -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-6 rounded-2xl shadow-sm border border-gray-200 gap-4">
+        <div class="flex items-center gap-3">
+            <div class="p-3 bg-gray-100 text-gray-800 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-black tracking-tight text-gray-900">Productos</h1>
+                <p class="text-xs text-gray-500">Gestión y control general del inventario</p>
+            </div>
+        </div>
 
-<!-- Barra de búsqueda -->
-<form method="get" class="row g-3 mb-4">
-    <div class="col-md-6">
-        <input type="text" name="busqueda" class="form-control" 
-               placeholder="Buscar por nombre o código de barras" 
-               value="{{ form.busqueda.value|default:'' }}">
+        {% if user.perfil.rol == 'admin' %}
+        <div class="flex items-center gap-2">
+            <a href="{% url 'productos:crear' %}" class="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Nuevo Producto
+            </a>
+            <a href="{% url 'productos:entrada' %}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                Entrada
+            </a>
+        </div>
+        {% endif %}
     </div>
-    <div class="col-md-3">
-        <select name="categoria" class="form-select">
-            <option value="">Todas las categorías</option>
-            {% for categoria in form.categoria.field.queryset %}
-                <option value="{{ categoria.id }}" {% if form.categoria.value == categoria.id %}selected{% endif %}>
-                    {{ categoria.nombre }}
-                </option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="col-md-3">
-        <button type="submit" class="btn btn-primary w-100">
-            <i class="fas fa-search"></i> Buscar
-        </button>
-    </div>
-</form>
 
-<!-- Tabla de productos -->
-<div class="card">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
+    <!-- Barra de búsqueda y filtros -->
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-12 gap-3">
+            <div class="md:col-span-6">
+                <input type="text" name="busqueda" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:bg-white focus:outline-none focus:border-gray-900 transition-colors" 
+                       placeholder="Buscar por nombre o código de barras" 
+                       value="{{ form.busqueda.value|default:'' }}">
+            </div>
+            <div class="md:col-span-4">
+                <select name="categoria" class="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:bg-white focus:outline-none focus:border-gray-900 transition-colors">
+                    <option value="">Todas las categorías</option>
+                    {% for categoria in form.categoria.field.queryset %}
+                        <option value="{{ categoria.id }}" {% if form.categoria.value|slugify == categoria.id|slugify %}selected{% endif %}>
+                            {{ categoria.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="md:col-span-2">
+                <button type="submit" class="w-full px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla de productos -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr>
-                        <th style="width: 80px;">Imagen</th>
-                        <th>Nombre</th>
-                        <th>Categoría</th>
-                        <th>Precio</th>
-                        <th>Cantidad</th>
-                        <th>Estado</th>
+                    <tr class="bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                        <th class="py-3 px-4 w-16 text-center">Imagen</th>
+                        <th class="py-3 px-6">Nombre</th>
+                        <th class="py-3 px-6">Categoría</th>
+                        <th class="py-3 px-6">Precio</th>
+                        <th class="py-3 px-6 text-center">Cantidad</th>
+                        <th class="py-3 px-6 text-center">Estado</th>
                         {% if user.perfil.rol == 'admin' %}
-                        <th>Acciones</th>
+                        <th class="py-3 px-6 text-right">Acciones</th>
                         {% endif %}
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-gray-100 text-sm">
                     {% for producto in page_obj %}
-                        <tr class="{% if producto.stock_bajo %}table-danger{% endif %}">
-                            <!-- MINIATURA DE IMAGEN -->
-                            <td>
+                        <tr class="hover:bg-gray-50/50 transition-colors {% if producto.stock_bajo %}bg-red-50/30{% endif %}">
+                            
+                            <!-- Miniatura de Imagen -->
+                            <td class="py-3 px-4 text-center">
                                 {% if producto.imagen %}
                                     <img src="{{ producto.imagen.url }}" 
                                          alt="{{ producto.nombre }}" 
-                                         class="img-thumbnail"
-                                         style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid var(--gray-200);">
+                                         class="w-10 h-10 object-cover rounded-xl border border-gray-200 mx-auto">
                                 {% else %}
-                                    <!-- Placeholder si no hay imagen cargada -->
-                                    <div class="d-flex align-items-center justify-content-center bg-light text-muted" 
-                                         style="width: 50px; height: 50px; border-radius: 8px; border: 1px dashed var(--gray-300);">
-                                        <i class="fas fa-image fa-lg"></i>
+                                    <div class="w-10 h-10 bg-gray-100 text-gray-400 rounded-xl border border-dashed border-gray-300 flex items-center justify-center mx-auto">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                     </div>
                                 {% endif %}
                             </td>
                             
-                            <!-- NOMBRE Y DESCRIPCIÓN -->
-                            <td>
-                                <strong>{{ producto.nombre }}</strong>
-                                <br>
-                                <small class="text-muted">{{ producto.descripcion|truncatechars:30 }}</small>
+                            <!-- Nombre y Descripción -->
+                            <td class="py-3 px-6">
+                                <strong class="font-semibold text-gray-900 block">{{ producto.nombre }}</strong>
+                                <span class="text-xs text-gray-400 block">{{ producto.descripcion|truncatechars:30 }}</span>
                             </td>
-                            <td>{{ producto.categoria.nombre|default:"Sin categoría" }}</td>
-                            <td>${{ producto.precio }}</td>
-                            <td>
+
+                            <!-- Categoría -->
+                            <td class="py-3 px-6 text-xs text-gray-600">
+                                {{ producto.categoria.nombre|default:"Sin categoría" }}
+                            </td>
+
+                            <!-- Precio -->
+                            <td class="py-3 px-6 font-mono text-xs font-bold text-gray-900">
+                                ${{ producto.precio }}
+                            </td>
+
+                            <!-- Cantidad -->
+                            <td class="py-3 px-6 text-center">
                                 {% if producto.stock_bajo %}
-                                    <span class="badge bg-danger">{{ producto.cantidad }}</span>
+                                    <span class="inline-flex items-center px-2.5 py-1 bg-red-100 text-red-700 font-bold text-xs rounded-lg">
+                                        {{ producto.cantidad }}
+                                    </span>
                                 {% else %}
-                                    <span class="badge bg-success">{{ producto.cantidad }}</span>
+                                    <span class="inline-flex items-center px-2.5 py-1 bg-emerald-100 text-emerald-700 font-bold text-xs rounded-lg">
+                                        {{ producto.cantidad }}
+                                    </span>
                                 {% endif %}
                             </td>
-                            <td>
+
+                            <!-- Estado -->
+                            <td class="py-3 px-6 text-center">
                                 {% if producto.stock_bajo %}
-                                    <span class="badge bg-warning text-dark">Stock Bajo</span>
+                                    <span class="inline-flex px-2.5 py-1 bg-amber-100 text-amber-800 text-[11px] font-bold rounded-lg">Stock Bajo</span>
                                 {% else %}
-                                    <span class="badge bg-success">Disponible</span>
+                                    <span class="inline-flex px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[11px] font-bold rounded-lg">Disponible</span>
                                 {% endif %}
                             </td>
+
+                            <!-- Acciones de Administrador -->
                             {% if user.perfil.rol == 'admin' %}
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'productos:editar' producto.id %}" class="btn btn-outline-primary">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a href="{% url 'productos:eliminar' producto.id %}" class="btn btn-outline-danger">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                </div>
+                            <td class="py-3 px-6 text-right space-x-1">
+                                <a href="{% url 'productos:editar' producto.id %}" class="inline-flex items-center justify-center p-2 bg-gray-100 hover:bg-gray-900 hover:text-white text-gray-700 rounded-xl transition-all shadow-sm" title="Editar">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                </a>
+                                <a href="{% url 'productos:eliminar' producto.id %}" class="inline-flex items-center justify-center p-2 bg-red-50 hover:bg-red-600 hover:text-white text-red-600 rounded-xl transition-all shadow-sm" title="Eliminar">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </a>
                             </td>
                             {% endif %}
+
                         </tr>
                     {% empty %}
                         <tr>
-                            <!-- Reducido el colspan a 7 (con admin) o 6 (sin admin) ya que quitamos la columna Código -->
-                            <td colspan="{% if user.perfil.rol == 'admin' %}7{% else %}6{% endif %}" class="text-center py-4">
-                                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                                <p class="text-muted">No hay productos registrados</p>
-                                {% if user.perfil.rol == 'admin' %}
-                                <a href="{% url 'productos:crear' %}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-plus"></i> Agregar primer producto
-                                </a>
-                                {% endif %}
+                            <td colspan="{% if user.perfil.rol == 'admin' %}7{% else %}6{% endif %}" class="text-center py-12">
+                                <div class="flex flex-col items-center justify-center space-y-3">
+                                    <div class="p-4 bg-gray-100 text-gray-400 rounded-full">
+                                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                                    </div>
+                                    <p class="text-sm font-bold text-gray-700">
+                                        {% if request.GET.busqueda or request.GET.categoria %}
+                                            No hay productos disponibles con los filtros seleccionados
+                                        {% else %}
+                                            No hay productos registrados
+                                        {% endif %}
+                                    </p>
+                                    <p class="text-xs text-gray-400">Prueba ajustando tu búsqueda o seleccionando otra categoría.</p>
+                                    {% if request.GET.busqueda or request.GET.categoria %}
+                                    <a href="{% url 'productos:lista' %}" class="mt-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-all">
+                                        Limpiar filtros
+                                    </a>
+                                    {% elif user.perfil.rol == 'admin' %}
+                                    <a href="{% url 'productos:crear' %}" class="mt-2 px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-xl shadow transition-all">
+                                        Agregar primer producto
+                                    </a>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        
-        <!-- Paginación de 5 en 5 -->
+
+        <!-- Paginación Moderna -->
         {% if page_obj.has_other_pages %}
-            <nav class="mt-3">
-                <ul class="pagination justify-content-center">
+            <div class="p-4 border-t border-gray-200 bg-gray-50 flex justify-center">
+                <nav class="flex items-center gap-1">
                     {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                                Anterior
-                            </a>
-                        </li>
+                        <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 text-xs font-bold rounded-xl transition-colors">
+                            Anterior
+                        </a>
                     {% endif %}
                     
                     {% for num in page_obj.paginator.page_range %}
-                        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
-                            <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                                {{ num }}
-                            </a>
-                        </li>
+                        <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1.5 text-xs font-bold rounded-xl transition-colors {% if page_obj.number == num %}bg-gray-900 text-white shadow-sm{% else %}bg-white border border-gray-200 text-gray-700 hover:bg-gray-100{% endif %}">
+                            {{ num }}
+                        </a>
                     {% endfor %}
                     
                     {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                                Siguiente
-                            </a>
-                        </li>
+                        <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 text-xs font-bold rounded-xl transition-colors">
+                            Siguiente
+                        </a>
                     {% endif %}
-                </ul>
-            </nav>
-        {% endif %}
-    </div>
-</div>
-        
-        <!-- Paginación -->
-        {% if page_obj.has_other_pages %}
-            <nav>
-                <ul class="pagination justify-content-center">
-                    {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                                Anterior
-                            </a>
-                        </li>
-                    {% endif %}
-                    
-                    {% for num in page_obj.paginator.page_range %}
-                        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
-                            <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                                {{ num }}
-                            </a>
-                        </li>
-                    {% endfor %}
-                    
-                    {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
-                                Siguiente
-                            </a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </nav>
+                </nav>
+            </div>
         {% endif %}
     </div>
 </div>

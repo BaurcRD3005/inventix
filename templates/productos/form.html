@@ -1,12 +1,10 @@
+<!-- templates/productos/form_producto.html -->
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
-{% load static %}
 
-{% block title %}{{ titulo }}{% endblock %}
+{% block title %}{{ titulo }} - Inventix{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Estilos dinámicos para transiciones del formulario */
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(-10px); }
         to { opacity: 1; transform: translateY(0); }
@@ -15,153 +13,141 @@
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-8 col-md-10">
-        <div class="card">
-            <!-- Encabezado de la Tarjeta -->
-            <div class="card-header">
-                <h4 class="mb-0 d-flex align-items-center fw-bold" style="color: var(--gray-800);">
-                    <i class="fas {% if accion == 'Actualizar' %}fa-edit{% else %}fa-plus-circle{% endif %} me-2" style="color: var(--primary-color);"></i>
-                    {{ titulo }}
-                </h4>
+<div class="max-w-4xl mx-auto space-y-6">
+    
+    <!-- Encabezado superior / Botón de retorno -->
+    <div class="flex items-center justify-between bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <div class="flex items-center gap-3">
+            <div class="p-3 bg-gray-100 text-gray-800 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {% if accion == 'Actualizar' %}
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    {% else %}
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    {% endif %}
+                </svg>
             </div>
+            <div>
+                <h1 class="text-xl font-black tracking-tight text-gray-900">{{ titulo }}</h1>
+                <p class="text-xs text-gray-500">Completa la información detallada del producto</p>
+            </div>
+        </div>
+        <a href="{% url 'productos:lista' %}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-all flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Volver
+        </a>
+    </div>
 
-            <!-- Cuerpo del Formulario -->
-            <div class="card-body">
-                <form method="POST" enctype="multipart/form-data" novalidate>
-                    {% csrf_token %}
+    <!-- Contenedor del Formulario -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="p-6 sm:p-8">
+            <form method="POST" enctype="multipart/form-data" novalidate class="space-y-6">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     
-                    <div class="row g-3">
-                        <!-- ========================================== -->
-                        <!-- PASO 1: NOMBRE DEL PRODUCTO -->
-                        <!-- ========================================== -->
-                        <div class="col-12">
-                            <label for="{{ form.nombre.id_for_label }}" class="form-label fs-5">
-                                <i class="fas fa-tag me-1" style="color: var(--primary-color);"></i> 1. Nombre del Producto
-                            </label>
-                            {{ form.nombre }}
-                            {% if form.nombre.errors %}
-                                <div class="text-danger small mt-1">{{ form.nombre.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- ========================================== -->
-                        <!-- PASO 2: FORMATO DE REGISTRO/VENTA -->
-                        <!-- ========================================== -->
-                        <div class="col-md-6 mt-4">
-                            <label for="{{ form.formato.id_for_label }}" class="form-label">
-                                <i class="fas fa-boxes me-1" style="color: var(--primary-color);"></i> 2. Formato de Registro/Venta
-                            </label>
-                            <!-- El select en el Form de Django debe contener:
-                                 - Pieza Individual
-                                 - Caja / Lote -->
-                            {{ form.formato }}
-                            {% if form.formato.errors %}
-                                <div class="text-danger small mt-1">{{ form.formato.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Piezas por Caja (Se muestra de manera dinámica si se elige Caja / Lote) -->
-                        <div class="col-md-6 mt-4" id="grupo-piezas-por-caja" style="display: none;">
-                            <label for="{{ form.piezas_por_caja.id_for_label }}" class="form-label" style="color: var(--secondary-color);">
-                                <i class="fas fa-layer-group me-1"></i> Piezas por Caja / Lote
-                            </label>
-                            {{ form.piezas_por_caja }}
-                            <div class="form-text">Indica cuántas unidades individuales tiene cada lote.</div>
-                            {% if form.piezas_por_caja.errors %}
-                                <div class="text-danger small mt-1">{{ form.piezas_por_caja.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- ========================================== -->
-                        <!-- PASO 3: CATEGORÍA -->
-                        <!-- ========================================== -->
-                        <div class="col-md-6 mt-3">
-                            <label for="{{ form.categoria.id_for_label }}" class="form-label">
-                                <i class="fas fa-folder me-1" style="color: var(--gray-500);"></i> 3. Categoría
-                            </label>
-                            <!-- El ChoiceField/ModelChoiceField en Django cargará estas opciones:
-                                 - Cuadernos y Papelería de Soporte
-                                 - Escritura y Corrección
-                                 - Material Escolar y Didáctico
-                                 - Oficina y Archivo
-                                 - Papeles Especiales y Manualidades
-                                 - Regalos, Envolturas y Mercería Básica
-                                 - Servicios -->
-                            {{ form.categoria }}
-                            {% if form.categoria.errors %}
-                                <div class="text-danger small mt-1">{{ form.categoria.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Precio Público ($) -->
-                        <div class="col-md-6 mt-3">
-                            <label for="{{ form.precio.id_for_label }}" class="form-label">
-                                <i class="fas fa-dollar-sign me-1" style="color: var(--gray-500);"></i> Precio Público ($)
-                            </label>
-                            {{ form.precio }}
-                            {% if form.precio.errors %}
-                                <div class="text-danger small mt-1">{{ form.precio.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Descripción del Producto -->
-                        <div class="col-12">
-                            <label for="{{ form.descripcion.id_for_label }}" class="form-label">
-                                <i class="fas fa-align-left me-1" style="color: var(--gray-500);"></i> Descripción del Producto
-                            </label>
-                            {{ form.descripcion }}
-                            {% if form.descripcion.errors %}
-                                <div class="text-danger small mt-1">{{ form.descripcion.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Stock Inicial -->
-                        <div class="col-md-6">
-                            <label for="{{ form.cantidad.id_for_label }}" class="form-label">
-                                <i class="fas fa-cubes me-1" style="color: var(--gray-500);"></i> Stock Inicial (En Unidades)
-                            </label>
-                            {{ form.cantidad }}
-                            <div class="form-text">Registra siempre la suma de unidades individuales.</div>
-                            {% if form.cantidad.errors %}
-                                <div class="text-danger small mt-1">{{ form.cantidad.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Alerta Mínima -->
-                        <div class="col-md-6">
-                            <label for="{{ form.cantidad_minima.id_for_label }}" class="form-label">
-                                <i class="fas fa-exclamation-triangle me-1" style="color: var(--gray-500);"></i> Alerta Mínima (Unidades)
-                            </label>
-                            {{ form.cantidad_minima }}
-                            {% if form.cantidad_minima.errors %}
-                                <div class="text-danger small mt-1">{{ form.cantidad_minima.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Imagen del Producto -->
-                        <div class="col-12 mt-2">
-                            <label for="{{ form.imagen.id_for_label }}" class="form-label">
-                                <i class="fas fa-image me-1" style="color: var(--gray-500);"></i> Imagen del Producto
-                            </label>
-                            {{ form.imagen }}
-                            {% if form.imagen.errors %}
-                                <div class="text-danger small mt-1">{{ form.imagen.errors.0 }}</div>
-                            {% endif %}
-                        </div>
+                    <!-- PASO 1: NOMBRE DEL PRODUCTO (Ocupa todo el ancho) -->
+                    <div class="md:col-span-2">
+                        <label for="{{ form.nombre.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                            1. Nombre del Producto <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                            <p class="text-red-600 text-xs mt-1 font-medium">{{ form.nombre.errors.0 }}</p>
+                        {% endif %}
                     </div>
 
-                    <!-- Botones de Acción de Envío -->
-                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-                        <a href="{% url 'productos:lista' %}" class="btn btn-light border">
-                            <i class="fas fa-times me-1"></i> Cancelar
-                        </a>
-                        <button type="submit" class="btn btn-primary px-4">
-                            <i class="fas fa-save me-1"></i> {{ accion }} Producto
-                        </button>
+                    <!-- PASO 2: FORMATO DE REGISTRO/VENTA -->
+                    <div>
+                        <label for="{{ form.formato.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                            2. Formato de Registro/Venta <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.formato }}
+                        {% if form.formato.errors %}
+                            <p class="text-red-600 text-xs mt-1 font-medium">{{ form.formato.errors.0 }}</p>
+                        {% endif %}
                     </div>
-                </form>
-            </div>
+
+                    <!-- Piezas por Caja (Dinámico) -->
+                    <div id="grupo-piezas-por-caja" style="display: none;">
+                        <label for="{{ form.piezas_por_caja.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                            Piezas por Caja / Lote <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.piezas_por_caja }}
+                        <p class="text-xs text-gray-400 mt-1">Indica cuántas unidades individuales tiene cada lote.</p>
+                        {% if form.piezas_por_caja.errors %}
+                            <p class="text-red-600 text-xs mt-1 font-medium">{{ form.piezas_por_caja.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- PASO 3: CATEGORÍA -->
+                    <div>
+                        <label for="{{ form.categoria.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                            3. Categoría <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.categoria }}
+                        {% if form.categoria.errors %}
+                            <p class="text-red-600 text-xs mt-1 font-medium">{{ form.categoria.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- PRECIO PÚBLICO -->
+                    <div>
+                        <label for="{{ form.precio.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                            Precio Público ($) <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.precio }}
+                        {% if form.precio.errors %}
+                            <p class="text-red-600 text-xs mt-1 font-medium">{{ form.precio.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- DESCRIPCIÓN DEL PRODUCTO (Ocupa todo el ancho) -->
+                    <div class="md:col-span-2">
+                        <label for="{{ form.descripcion.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                            Descripción del Producto
+                        </label>
+                        {{ form.descripcion }}
+                        {% if form.descripcion.errors %}
+                            <p class="text-red-600 text-xs mt-1 font-medium">{{ form.descripcion.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- ALERTA MÍNIMA (Ocupa todo el ancho o se acomoda con grid) -->
+                    <div class="md:col-span-2">
+                        <label for="{{ form.cantidad_minima.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                            Alerta Mínima (Unidades) <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.cantidad_minima }}
+                        {% if form.cantidad_minima.errors %}
+                            <p class="text-red-600 text-xs mt-1 font-medium">{{ form.cantidad_minima.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- IMAGEN DEL PRODUCTO (Ocupa todo el ancho) -->
+                    <div class="md:col-span-2">
+                        <label for="{{ form.imagen.id_for_label }}" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                            Imagen del Producto
+                        </label>
+                        {{ form.imagen }}
+                        {% if form.imagen.errors %}
+                            <p class="text-red-600 text-xs mt-1 font-medium">{{ form.imagen.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                </div>
+
+                <!-- Botones de Acción de Envío -->
+                <div class="flex items-center justify-end gap-3 pt-6 border-t border-gray-200">
+                    <a href="{% url 'productos:lista' %}" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-all shadow-sm">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        {{ accion }} Producto
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -170,15 +156,20 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // ==========================================
+        // Asegurar que los inputs generados por Django form tengan las clases de Tailwind predeterminadas
+        const inputs = document.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea');
+        inputs.forEach(input => {
+            if (!input.classList.contains('w-full')) {
+                input.className = 'w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 focus:bg-white focus:outline-none focus:border-gray-900 transition-colors';
+            }
+        });
+
         // LÓGICA DE CONTROL DINÁMICO (LOTE/PIEZA)
-        // ==========================================
         const selectFormato = document.querySelector('select[name="formato"]');
         const grupoPiezas = document.getElementById('grupo-piezas-por-caja');
         const inputPiezas = document.querySelector('input[name="piezas_por_caja"]');
 
         function toggleCamposLote() {
-            // Verifica si el valor seleccionado corresponde a Caja/Lote (asegúrate de que coincida con el valor de tu Choice en models.py/forms.py)
             if (selectFormato && (selectFormato.value === 'lote' || selectFormato.value === 'caja_lote')) {
                 grupoPiezas.style.display = 'block';
                 grupoPiezas.style.animation = 'fadeIn 0.3s ease-in-out';

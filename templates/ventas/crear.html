@@ -3,799 +3,492 @@
 {% load crispy_forms_tags %}
 {% load static %}
 
-{% block title %}Registrar Venta - Inventix{% endblock %}
-
-{% block extra_css %}
-<style>
-    .scanner-container {
-        background: #000;
-        border-radius: 12px;
-        overflow: hidden;
-        position: relative;
-        min-height: 200px;
-        margin-top: 10px;
-        display: none;
-    }
-    
-    .scanner-container video {
-        width: 100%;
-        height: auto;
-        display: block;
-    }
-    
-    .scanner-overlay {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 70%;
-        height: 50%;
-        border: 3px solid #10B981;
-        border-radius: 12px;
-        box-shadow: 0 0 0 4000px rgba(0,0,0,0.3);
-        pointer-events: none;
-        animation: pulse-border 1.5s ease-in-out infinite;
-        z-index: 10;
-        display: none;
-    }
-    
-    @keyframes pulse-border {
-        0%, 100% { border-color: #10B981; }
-        50% { border-color: #F59E0B; }
-    }
-    
-    .scanner-controls {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        margin-top: 0.5rem;
-        flex-wrap: wrap;
-    }
-    
-    .scanner-controls .btn {
-        font-size: 0.8rem;
-        padding: 0.3rem 0.8rem;
-    }
-    
-    .scanner-status {
-        text-align: center;
-        padding: 0.3rem;
-        font-size: 0.85rem;
-        color: #6b7280;
-    }
-    
-    .btn-qr {
-        background: linear-gradient(135deg, #7C3AED, #4F46E5);
-        color: white;
-        border: none;
-    }
-    
-    .btn-qr:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(79, 70, 229, 0.3);
-        color: white;
-    }
-    
-    .toast-notification {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: #10B981;
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        z-index: 1000;
-        animation: slideInUp 0.5s ease;
-        display: none;
-        max-width: 350px;
-    }
-    
-    @keyframes slideInUp {
-        from { transform: translateY(100px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
-    }
-    
-    .toast-notification .nombre {
-        font-weight: 600;
-    }
-</style>
-{% endblock %}
+{% block title %}Caja Registradora - Inventix{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h4><i class="fas fa-cash-register"></i> Registrar Venta</h4>
+<div class="max-w-7xl mx-auto space-y-6">
+    
+    <!-- Encabezado Estilo POS -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
+        <div class="flex items-center gap-3">
+            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                </svg>
             </div>
-            <div class="card-body">
-                <form id="form-venta" method="post">
-                    {% csrf_token %}
-                    
-                    <!-- ========================================== -->
-                    <!-- BOTÓN ESCÁNER QR -->
-                    <!-- ========================================== -->
-                    <div class="mb-3">
-                        <button type="button" id="toggle-qr-scanner" class="btn btn-qr w-100">
-                            <i class="fas fa-qrcode"></i> 📷 Escanear Código QR
-                        </button>
-                        
-                        <!-- Contenedor del escáner -->
-                        <div id="scanner-container" class="scanner-container">
-                            <div id="scanner-overlay" class="scanner-overlay"></div>
-                            <video id="scanner-video" autoplay playsinline style="width:100%;height:auto;display:block;background:#000;"></video>
-                            <canvas id="scanner-canvas" style="display:none;"></canvas>
+            <div>
+                <h1 class="text-xl font-black tracking-tight text-gray-900">Terminal de Caja (POS)</h1>
+                <p class="text-xs text-gray-500">Escanea códigos, busca por texto o selecciona artículos por unidad, metro, pliego o lote</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-200">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Caja Activa
+            </span>
+            <a href="{% url 'dashboard:home' %}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors">
+                Salir / Cancelar
+            </a>
+        </div>
+    </div>
+
+    <!-- Layout Principal de Caja Registradora -->
+    <form id="form-venta" method="post" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {% csrf_token %}
+        
+        <!-- Columna Izquierda: Entrada y Selección (7 columnas) -->
+        <div class="lg:col-span-7 space-y-5">
+            
+            <!-- Bloque de Escáner y Búsqueda Rápida -->
+            <div class="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl p-5 text-white shadow-lg space-y-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="p-2 bg-white/10 rounded-lg">
+                            <svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
                         </div>
-                        
-                        <div id="scanner-status" class="scanner-status">📷 Haz clic en "Escanear QR" para activar la cámara</div>
-                        
-                        <div class="scanner-controls">
-                            <button id="start-qr-scanner" class="btn btn-success btn-sm">
-                                <i class="fas fa-play"></i> Iniciar Escáner
-                            </button>
-                            <button id="stop-qr-scanner" class="btn btn-danger btn-sm" disabled>
-                                <i class="fas fa-stop"></i> Detener
-                            </button>
-                            <button id="manual-qr-input-btn" class="btn btn-info btn-sm">
-                                <i class="fas fa-keyboard"></i> Manual
-                            </button>
-                        </div>
-                        
-                        <!-- Entrada manual QR -->
-                        <div id="manual-qr-input" style="display: none;" class="mt-2">
-                            <div class="input-group input-group-sm">
-                                <input type="text" id="codigo-qr-manual" class="form-control" 
-                                       placeholder="Ingresa el código QR manualmente">
-                                <button id="buscar-qr-manual" class="btn btn-primary">
-                                    <i class="fas fa-search"></i> Buscar
-                                </button>
-                            </div>
+                        <div>
+                            <h3 class="font-bold text-sm">Escáner de Cámara Activo</h3>
+                            <p id="scanner-status" class="text-xs text-indigo-300">Listo para capturar códigos de barras o QR</p>
                         </div>
                     </div>
+                    <div class="flex gap-2">
+                        <button type="button" id="toggle-qr-scanner" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow transition-all">
+                            Abrir/Cerrar Cámara
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Visor de Video -->
+                <div id="scanner-container" class="relative bg-black rounded-xl overflow-hidden hidden border border-indigo-500/30">
+                    <div id="scanner-overlay" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-1/2 border-2 border-emerald-400 rounded-xl pointer-events-none shadow-2xl hidden z-10 animate-pulse"></div>
+                    <video id="scanner-video" autoplay playsinline class="w-full h-auto max-h-[220px] object-cover block mx-auto bg-black"></video>
+                    <canvas id="scanner-canvas" class="hidden"></canvas>
                     
-                    <!-- ========================================== -->
-                    <!-- SELECCIÓN DE PRODUCTOS MANUAL -->
-                    <!-- ========================================== -->
-                    <div class="row mb-3">
-                        <div class="col-md-7">
-                            <label for="id_producto" class="form-label">Producto</label>
-                            <select id="id_producto" class="form-select" onchange="actualizarPrecio()">
-                                <option value="">Seleccionar producto...</option>
+                    <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-2 z-20">
+                        <button id="start-qr-scanner" type="button" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow">Iniciar</button>
+                        <button id="stop-qr-scanner" type="button" disabled class="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white text-xs font-bold rounded-lg shadow">Detener</button>
+                    </div>
+                </div>
+
+                <!-- Input Manual Rápido (Código de barras o SKU) -->
+                <div class="flex gap-2 pt-1">
+                    <input type="text" id="codigo-qr-manual" class="w-full bg-white/10 border border-white/20 text-white placeholder-indigo-300 text-sm rounded-xl focus:ring-indigo-400 focus:border-indigo-400 block p-2.5" placeholder="Escribe el código o SKU y presiona Enter...">
+                    <button id="buscar-qr-manual" type="button" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-bold rounded-xl transition-colors">
+                        Buscar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Selección y Búsqueda Escrita de Productos (Ideal Papelerías / Medidas Variables) -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 space-y-4">
+                <h3 class="text-xs font-black text-gray-400 uppercase tracking-wider">Búsqueda de Productos por Texto y Medida</h3>
+                
+                <div class="space-y-3">
+                    <!-- Input de Búsqueda Escrita Interactiva -->
+                    <div class="relative">
+                        <input type="text" id="buscador-texto" placeholder="Escribe para buscar por nombre (ej. cartulina, listón, cuaderno)..." class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-gray-900 focus:border-gray-900 block p-3 pr-10">
+                    </div>
+
+                    <!-- Lista desplegable / Autocompletado filtrado -->
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                        <div class="sm:col-span-7">
+                            <select id="id_producto" onchange="actualizarDatosProducto()" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-gray-900 focus:border-gray-900 block p-3">
+                                <option value="">Selecciona o busca un producto...</option>
                                 {% for producto in productos %}
-                                    <option value="{{ producto.id }}" data-precio="{{ producto.precio }}" data-cantidad="{{ producto.cantidad }}">
-                                        {{ producto.nombre }} - ${{ producto.precio }} ({{ producto.cantidad }} disponibles)
+                                    <option value="{{ producto.id }}" data-precio="{{ producto.precio }}" data-cantidad="{{ producto.cantidad }}" data-unidad="{{ producto.unidad_medida|default:'pza' }}" data-nombre="{{ producto.nombre }}">
+                                        {{ producto.nombre }} — ${{ producto.precio }} (Disp: {{ producto.cantidad }})
                                     </option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-3">
-                            <label for="id_cantidad" class="form-label">Cantidad</label>
-                            <input type="number" id="id_cantidad" class="form-control" value="1" min="1">
+                        <div class="sm:col-span-3">
+                            <div class="relative">
+                                <input type="number" id="id_cantidad" value="1" min="0.01" step="any" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-gray-900 focus:border-gray-900 block p-3 text-center font-bold" placeholder="Cant">
+                            </div>
+                            <span id="label-unidad-medida" class="block text-[10px] text-center text-gray-400 font-bold uppercase mt-1">Unidad: Pza</span>
                         </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button type="button" class="btn btn-primary w-100" onclick="agregarProducto()">
-                                <i class="fas fa-plus"></i>
+                        <div class="sm:col-span-2">
+                            <button type="button" onclick="agregarProducto()" class="w-full h-[46px] bg-gray-900 hover:bg-gray-800 text-white text-sm font-bold rounded-xl shadow transition-all flex items-center justify-center">
+                                + Agregar
                             </button>
                         </div>
                     </div>
-                    
-                    <!-- ========================================== -->
-                    <!-- TABLA DE PRODUCTOS SELECCIONADOS -->
-                    <!-- ========================================== -->
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Producto</th>
-                                    <th>Cantidad</th>
-                                    <th>Precio</th>
-                                    <th>Subtotal</th>
-                                    <th>Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabla-productos">
-                                <tr id="fila-vacia">
-                                    <td colspan="5" class="text-center text-muted">
-                                        <i class="fas fa-shopping-cart"></i> No hay productos agregados
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- ========================================== -->
-                    <!-- OBSERVACIONES Y TOTAL -->
-                    <!-- ========================================== -->
-                    <div class="row mt-3">
-                        <div class="col-md-6">
-                            {{ form.observaciones|as_crispy_field }}
-                        </div>
-                        <div class="col-md-6 text-end">
-                            <h3>Total: <span id="total-venta" class="text-success">$0.00</span></h3>
-                            <input type="hidden" name="subtotal" id="id_subtotal" value="0">
-                            <input type="hidden" name="total" id="id_total" value="0">
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <button type="submit" class="btn btn-success btn-lg" onclick="return enviarVenta()">
-                            <i class="fas fa-check"></i> Finalizar Venta
-                        </button>
-                        <a href="{% url 'dashboard:home' %}" class="btn btn-secondary btn-lg">
-                            <i class="fas fa-times"></i> Cancelar
-                        </a>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-info-circle"></i> Ayuda</h5>
-            </div>
-            <div class="card-body">
-                <ul class="list-unstyled">
-                    <li class="mb-3">
-                        <i class="fas fa-hand-pointer text-primary"></i>
-                        <strong>Seleccionar producto:</strong>
-                        Elige un producto del menú desplegable
-                    </li>
-                    <li class="mb-3">
-                        <i class="fas fa-qrcode text-success"></i>
-                        <strong>Escáner QR:</strong>
-                        Escanea el código QR del producto para agregarlo
-                    </li>
-                    <li class="mb-3">
-                        <i class="fas fa-keyboard text-primary"></i>
-                        <strong>Atajo:</strong>
-                        Presiona <kbd>Enter</kbd> para agregar el producto
-                    </li>
-                    <li class="mb-3">
-                        <i class="fas fa-trash text-danger"></i>
-                        <strong>Eliminar:</strong>
-                        Usa el botón rojo para quitar un producto
-                    </li>
-                </ul>
-                
-                <div class="alert alert-warning mt-3">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <strong>Nota:</strong>
-                    El stock se actualizará automáticamente al finalizar la venta
                 </div>
             </div>
+
+            <!-- Observaciones breves -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                {{ form.observaciones|as_crispy_field }}
+            </div>
         </div>
-    </div>
+
+        <!-- Columna Derecha: El Ticket / Carrito Estilo POS (5 columnas) -->
+        <div class="lg:col-span-5 flex flex-col justify-between bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-4">
+            
+            <div class="space-y-3">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <h3 class="font-black text-gray-900 text-base flex items-center gap-2">
+                        Ticket Actual
+                    </h3>
+                    <span id="contador-items" class="px-2.5 py-0.5 bg-gray-100 text-gray-700 text-xs font-bold rounded-full">0 art.</span>
+                </div>
+
+                <!-- Tabla de Productos en Ticket -->
+                <div class="overflow-y-auto max-h-[320px] divide-y divide-gray-100" id="contenedor-lista-ticket">
+                    <div id="fila-vacia" class="py-12 text-center text-gray-400 text-xs">
+                        Escanea un código, busca por texto o selecciónalo para comenzar
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de Totales y Cobro -->
+            <div class="space-y-4 pt-4 border-t border-gray-100">
+                <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-2">
+                    <div class="flex justify-between text-xs text-gray-500 font-semibold">
+                        <span>Subtotal</span>
+                        <span id="subtotal-text">$0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-2 border-t border-gray-200">
+                        <span class="text-sm font-bold text-gray-700 uppercase">Total a Pagar</span>
+                        <h3 id="total-venta" class="text-3xl font-black text-emerald-600">$0.00</h3>
+                    </div>
+                </div>
+
+                <input type="hidden" name="subtotal" id="id_subtotal" value="0">
+                <input type="hidden" name="total" id="id_total" value="0">
+
+                <button type="submit" onclick="return enviarVenta()" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-black rounded-2xl shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    Cobrar / Finalizar Venta
+                </button>
+            </div>
+        </div>
+    </form>
 </div>
 
-<!-- Toast de notificación -->
-<div id="toast-notification" class="toast-notification">
-    <div class="d-flex justify-content-between align-items-center">
+<!-- Notificación flotante -->
+<div id="toast-notification" class="fixed bottom-5 right-5 bg-gray-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl z-50 transition-all duration-300 transform translate-y-20 opacity-0 hidden border border-gray-800">
+    <div class="flex items-center gap-3">
         <div>
-            <div class="nombre" id="toast-nombre">Producto</div>
-            <div id="toast-precio">$0.00</div>
+            <div id="toast-nombre" class="text-sm font-bold">Producto</div>
+            <div id="toast-precio" class="text-xs text-emerald-400">$0.00</div>
         </div>
-        <i class="fas fa-check-circle fa-2x"></i>
     </div>
 </div>
 
-<!-- QuaggaJS para QR -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js">
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 
 <script>
-    // ==========================================
-    // VARIABLES DE VENTA
-    // ==========================================
     let productosSeleccionados = [];
     let total = 0;
-    
-    // ==========================================
-    // VARIABLES DEL ESCÁNER QR
-    // ==========================================
     let qrScannerRunning = false;
     let qrStream = null;
     let qrScanInterval = null;
     let qrVisible = false;
     let qrCodigoDetectado = false;
 
-    // ==========================================
-    // TOAST DE NOTIFICACIÓN
-    // ==========================================
     function mostrarToast(mensaje, precio = '') {
         const toast = document.getElementById('toast-notification');
         document.getElementById('toast-nombre').textContent = mensaje;
         document.getElementById('toast-precio').textContent = precio;
-        toast.style.display = 'block';
-        toast.style.background = precio ? '#10B981' : '#F59E0B';
-        
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.remove('translate-y-20', 'opacity-0'), 10);
         setTimeout(() => {
-            toast.style.display = 'none';
-        }, 2500);
+            toast.classList.add('translate-y-20', 'opacity-0');
+            setTimeout(() => toast.classList.add('hidden'), 300);
+        }, 2000);
     }
 
-    // ==========================================
-    // FUNCIONES DE VENTA
-    // ==========================================
-    function actualizarPrecio() {
+    // Filtrar opciones del select mediante el buscador de texto escrito
+    document.getElementById('buscador-texto').addEventListener('input', function() {
+        const filtro = this.value.toLowerCase().trim();
+        const select = document.getElementById('id_producto');
+        const opciones = select.options;
+        
+        let primeraCoincidencia = null;
+
+        for (let i = 1; i < opciones.length; i++) {
+            const textoOp = opciones[i].text.toLowerCase();
+            if (textoOp.includes(filtro)) {
+                opciones[i].style.display = '';
+                if (!primeraCoincidencia) primeraCoincidencia = opciones[i].value;
+            } else {
+                opciones[i].style.display = 'none';
+            }
+        }
+
+        if (filtro === '') {
+            select.selectedIndex = 0;
+        } else if (primeraCoincidencia) {
+            select.value = primeraCoincidencia;
+        }
+        actualizarDatosProducto();
+    });
+
+    function actualizarDatosProducto() {
         const select = document.getElementById('id_producto');
         const option = select.options[select.selectedIndex];
-        const cantidad = document.getElementById('id_cantidad');
-        const disponible = option.dataset.cantidad || 0;
-        cantidad.max = disponible;
-    }
-    
-    function agregarProducto(productoId, cantidad, nombre, precio) {
-        if (productoId !== undefined) {
-            const existe = productosSeleccionados.some(p => p.id === productoId);
-            if (existe) {
-                mostrarToast('⚠️ Producto ya agregado');
-                return;
-            }
-            
-            const subtotal = precio * cantidad;
-            productosSeleccionados.push({
-                id: productoId,
-                nombre: nombre,
-                cantidad: cantidad,
-                precio: precio,
-                subtotal: subtotal
-            });
-            
-            actualizarTabla();
-            calcularTotal();
-            limpiarSeleccion();
-            mostrarToast(`✅ ${nombre} agregado (${cantidad} uds.)`, `$${subtotal.toFixed(2)}`);
+        const cantidadInput = document.getElementById('id_cantidad');
+        const labelUnidad = document.getElementById('label-unidad-medida');
+
+        if (!select.value) {
+            labelUnidad.textContent = 'Unidad: Pza';
+            cantidadInput.max = '';
             return;
         }
+
+        const disponible = option.dataset.cantidad || 0;
+        const unidad = option.dataset.unidad || 'pza';
         
-        // Método normal (desde select)
+        cantidadInput.max = disponible;
+        labelUnidad.textContent = `Unidad: ${unidad}`;
+    }
+
+    function agregarProducto(productoId, cantidad, nombre, precio, unidadMedida) {
+        if (productoId !== undefined) {
+            const unidad = unidadMedida || 'pza';
+            const cantAgregar = cantidad || 1;
+            const existe = productosSeleccionados.some(p => p.id === productoId);
+            
+            if (existe) {
+                const prod = productosSeleccionados.find(p => p.id === productoId);
+                prod.cantidad += cantAgregar;
+                prod.subtotal = prod.cantidad * prod.precio;
+                actualizarTabla();
+                calcularTotal();
+                mostrarToast(`[+] ${nombre} (+${cantAgregar} ${unidad})`, `$${prod.subtotal.toFixed(2)}`);
+                return;
+            }
+            productosSeleccionados.push({ id: productoId, nombre, cantidad: cantAgregar, precio, subtotal: precio * cantAgregar, unidad });
+            actualizarTabla();
+            calcularTotal();
+            mostrarToast(`[OK] ${nombre} agregado`, `$${(precio * cantAgregar).toFixed(2)}`);
+            return;
+        }
+
         const select = document.getElementById('id_producto');
         const cantidadInput = document.getElementById('id_cantidad');
         const productoIdSelect = select.value;
-        const productoNombre = select.options[select.selectedIndex].text.split(' - ')[0];
-        const precioSelect = parseFloat(select.options[select.selectedIndex].dataset.precio) || 0;
-        const disponible = parseInt(select.options[select.selectedIndex].dataset.cantidad) || 0;
-        const cantidadVal = parseInt(cantidadInput.value) || 1;
         
         if (!productoIdSelect) {
-            alert('Por favor selecciona un producto');
+            alert('Selecciona o busca un producto válido');
             return;
         }
-        
+
+        const option = select.options[select.selectedIndex];
+        const productoNombre = option.dataset.nombre || option.text.split(' — ')[0];
+        const precioSelect = parseFloat(option.dataset.precio) || 0;
+        const disponible = parseFloat(option.dataset.cantidad) || 0;
+        const unidad = option.dataset.unidad || 'pza';
+        const cantidadVal = parseFloat(cantidadInput.value) || 1;
+
+        if (cantidadVal <= 0) {
+            alert('Ingresa una cantidad válida mayor a 0');
+            return;
+        }
+
         if (cantidadVal > disponible) {
-            alert(`Solo hay ${disponible} unidades disponibles`);
+            alert(`Stock insuficiente. Solo hay ${disponible} ${unidad} disponibles.`);
             return;
         }
-        
+
         const existe = productosSeleccionados.some(p => p.id === parseInt(productoIdSelect));
         if (existe) {
-            alert('Este producto ya está en la lista');
+            const prod = productosSeleccionados.find(p => p.id === parseInt(productoIdSelect));
+            prod.cantidad += cantidadVal;
+            prod.subtotal = prod.cantidad * prod.precio;
+            actualizarTabla();
+            calcularTotal();
+            limpiarSeleccion();
+            mostrarToast(`[+] ${productoNombre} actualizado`, `$${prod.subtotal.toFixed(2)}`);
             return;
         }
-        
+
         const subtotal = precioSelect * cantidadVal;
-        productosSeleccionados.push({
-            id: parseInt(productoIdSelect),
-            nombre: productoNombre,
-            cantidad: cantidadVal,
-            precio: precioSelect,
-            subtotal: subtotal
-        });
-        
+        productosSeleccionados.push({ id: parseInt(productoIdSelect), nombre: productoNombre, cantidad: cantidadVal, precio: precioSelect, subtotal, unidad });
         actualizarTabla();
         calcularTotal();
         limpiarSeleccion();
-        mostrarToast(`✅ ${productoNombre} agregado`, `$${subtotal.toFixed(2)}`);
+        mostrarToast(`[OK] ${productoNombre} agregado`, `$${subtotal.toFixed(2)}`);
     }
-    
+
     function actualizarTabla() {
-        const tbody = document.getElementById('tabla-productos');
+        const contenedor = document.getElementById('contenedor-lista-ticket');
+        const contadorItems = document.getElementById('contador-items');
         
+        const totalItemsCount = productosSeleccionados.reduce((sum, p) => sum + p.cantidad, 0);
+        contadorItems.textContent = `${totalItemsCount} art.`;
+
         if (productosSeleccionados.length === 0) {
-            tbody.innerHTML = `
-                <tr id="fila-vacia">
-                    <td colspan="5" class="text-center text-muted">
-                        <i class="fas fa-shopping-cart"></i> No hay productos agregados
-                    </td>
-                </tr>
-            `;
+            contenedor.innerHTML = `<div id="fila-vacia" class="py-12 text-center text-gray-400 text-xs">Escanea un código, busca por texto o selecciónalo para comenzar</div>`;
             return;
         }
-        
-        tbody.innerHTML = '';
+
+        contenedor.innerHTML = '';
         productosSeleccionados.forEach((p, index) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><strong>${p.nombre}</strong></td>
-                <td>${p.cantidad}</td>
-                <td>$${p.precio.toFixed(2)}</td>
-                <td>$${p.subtotal.toFixed(2)}</td>
-                <td>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="eliminarProducto(${index})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
+            const div = document.createElement('div');
+            div.className = "py-2.5 flex items-center justify-between text-sm";
+            div.innerHTML = `
+                <div class="space-y-0.5 pr-2">
+                    <div class="font-bold text-gray-900">${p.nombre}</div>
+                    <div class="text-xs text-gray-500">${p.cantidad} ${p.unidad} x $${p.precio.toFixed(2)}</div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="font-black text-gray-900">$${p.subtotal.toFixed(2)}</span>
+                    <button type="button" onclick="eliminarProducto(${index})" class="text-gray-300 hover:text-red-600 p-1 font-bold">X</button>
+                </div>
             `;
-            tbody.appendChild(tr);
+            contenedor.appendChild(div);
         });
     }
-    
+
     function eliminarProducto(index) {
         productosSeleccionados.splice(index, 1);
         actualizarTabla();
         calcularTotal();
     }
-    
+
     function calcularTotal() {
         total = productosSeleccionados.reduce((sum, p) => sum + p.subtotal, 0);
         document.getElementById('total-venta').textContent = `$${total.toFixed(2)}`;
+        document.getElementById('subtotal-text').textContent = `$${total.toFixed(2)}`;
         document.getElementById('id_subtotal').value = total.toFixed(2);
         document.getElementById('id_total').value = total.toFixed(2);
     }
-    
+
     function limpiarSeleccion() {
-        document.getElementById('id_producto').selectedIndex = 0;
+        document.getElementById('buscador-texto').value = '';
+        const select = document.getElementById('id_producto');
+        select.selectedIndex = 0;
+        for (let i = 0; i < select.options.length; i++) {
+            select.options[i].style.display = '';
+        }
         document.getElementById('id_cantidad').value = 1;
-        document.getElementById('id_producto').focus();
+        document.getElementById('label-unidad-medida').textContent = 'Unidad: Pza';
+        document.getElementById('buscador-texto').focus();
     }
-    
+
     function enviarVenta() {
         if (productosSeleccionados.length === 0) {
-            alert('No hay productos en la venta');
+            alert('El ticket está vacío');
             return false;
         }
-        
         const form = document.getElementById('form-venta');
-        form.querySelectorAll('input[name="producto_id[]"]').forEach(el => el.remove());
-        form.querySelectorAll('input[name="cantidad[]"]').forEach(el => el.remove());
-        form.querySelectorAll('input[name="precio[]"]').forEach(el => el.remove());
-        
+        form.querySelectorAll('input[name="producto_id[]"], input[name="cantidad[]"], input[name="precio[]"]').forEach(el => el.remove());
+
         productosSeleccionados.forEach(p => {
-            const inputId = document.createElement('input');
-            inputId.type = 'hidden';
-            inputId.name = 'producto_id[]';
-            inputId.value = p.id;
-            form.appendChild(inputId);
-            
-            const inputCantidad = document.createElement('input');
-            inputCantidad.type = 'hidden';
-            inputCantidad.name = 'cantidad[]';
-            inputCantidad.value = p.cantidad;
-            form.appendChild(inputCantidad);
-            
-            const inputPrecio = document.createElement('input');
-            inputPrecio.type = 'hidden';
-            inputPrecio.name = 'precio[]';
-            inputPrecio.value = p.precio;
-            form.appendChild(inputPrecio);
+            ['id', 'cantidad', 'precio'].forEach((key, i) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = ['producto_id[]', 'cantidad[]', 'precio[]'][i];
+                input.value = p[key];
+                form.appendChild(input);
+            });
         });
-        
         return true;
     }
 
-    // ==========================================
-    // ESCÁNER QR
-    // ==========================================
-    
-    // Mostrar/Ocultar escáner QR
+    // Cámara y Escáner
     document.getElementById('toggle-qr-scanner').addEventListener('click', function() {
         const container = document.getElementById('scanner-container');
         if (qrVisible) {
-            container.style.display = 'none';
+            container.classList.add('hidden');
             qrVisible = false;
             detenerQREscanner();
-            document.getElementById('scanner-overlay').style.display = 'none';
-            document.getElementById('scanner-status').textContent = '📷 Escáner oculto';
         } else {
-            container.style.display = 'block';
+            container.classList.remove('hidden');
             qrVisible = true;
-            document.getElementById('scanner-status').textContent = '📷 Inicializando cámara...';
             setTimeout(cargarCamarasQR, 300);
         }
     });
 
     function cargarCamarasQR() {
-        document.getElementById('scanner-status').textContent = '📷 Buscando cámaras...';
-        
-        navigator.mediaDevices.enumerateDevices()
-            .then(function(devices) {
-                const videoDevices = devices.filter(device => device.kind === 'videoinput');
-                if (videoDevices.length === 0) {
-                    document.getElementById('scanner-status').textContent = '❌ No se encontraron cámaras';
-                    return;
-                }
-                
-                const primeraCamara = videoDevices[0].deviceId;
-                document.getElementById('start-qr-scanner').dataset.cameraId = primeraCamara;
-                document.getElementById('scanner-status').textContent = '✅ Cámara lista. Haz clic en "Iniciar Escáner"';
-            })
-            .catch(function(err) {
-                document.getElementById('scanner-status').textContent = '❌ Error: ' + err.message;
-            });
+        navigator.mediaDevices.enumerateDevices().then(devices => {
+            const videoDevices = devices.filter(d => d.kind === 'videoinput');
+            if (videoDevices.length > 0) {
+                document.getElementById('start-qr-scanner').dataset.cameraId = videoDevices[0].deviceId;
+                document.getElementById('scanner-status').textContent = 'Cámara lista, presiona Iniciar';
+            }
+        });
     }
 
-    // Iniciar escáner QR
     document.getElementById('start-qr-scanner').addEventListener('click', function() {
         const cameraId = this.dataset.cameraId;
-        if (!cameraId) {
-            document.getElementById('scanner-status').textContent = '❌ No hay cámara disponible';
-            return;
-        }
-        iniciarQREscanner(cameraId);
+        if (cameraId) iniciarQREscanner(cameraId);
     });
 
     function iniciarQREscanner(cameraId) {
-        if (qrScannerRunning) {
-            detenerQREscanner();
-        }
-        
-        qrCodigoDetectado = false;
-        document.getElementById('scanner-status').textContent = '📷 Iniciando cámara...';
-        document.getElementById('scanner-overlay').style.display = 'none';
-        
-        navigator.mediaDevices.getUserMedia({
-            video: {
-                deviceId: { exact: cameraId },
-                facingMode: 'environment',
-                width: { ideal: 640 },
-                height: { ideal: 480 }
-            }
-        })
-        .then(function(mediaStream) {
-            qrStream = mediaStream;
+        if (qrScannerRunning) detenerQREscanner();
+        navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: cameraId }, facingMode: 'environment' } })
+        .then(stream => {
+            qrStream = stream;
             const video = document.getElementById('scanner-video');
-            video.srcObject = mediaStream;
+            video.srcObject = stream;
             video.play();
-            
-            document.getElementById('scanner-status').textContent = ' Cámara activa - Escaneando QR...';
-            document.getElementById('scanner-overlay').style.display = 'block';
             qrScannerRunning = true;
-            
             document.getElementById('start-qr-scanner').disabled = true;
             document.getElementById('stop-qr-scanner').disabled = false;
-            
-            if (qrScanInterval) clearInterval(qrScanInterval);
+            document.getElementById('scanner-overlay').classList.remove('hidden');
             qrScanInterval = setInterval(escanearQR, 300);
-        })
-        .catch(function(err) {
-            document.getElementById('scanner-status').textContent = '❌ Error: ' + err.message;
-            console.error('Error:', err);
         });
     }
 
     function escanearQR() {
         if (!qrScannerRunning) return;
-        
         const video = document.getElementById('scanner-video');
         const canvas = document.getElementById('scanner-canvas');
-        const ctx = canvas.getContext('2d');
-        
         if (!video.videoWidth) return;
-        
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        canvas.getContext('2d').drawImage(video, 0, 0);
         
         Quagga.decodeSingle({
-            src: imageData,
+            src: canvas.toDataURL('image/jpeg', 0.8),
             numOfWorkers: 0,
-            inputStream: {
-                size: 800,
-                singleChannel: false
-            },
-            decoder: {
-                readers: [
-                    "code_128_reader",
-                    "ean_reader",
-                    "ean_8_reader",
-                    "code_39_reader",
-                    "upc_reader",
-                    "upc_e_reader",
-                    "codabar_reader",
-                    "qr_reader"
-                ]
-            },
+            inputStream: { size: 800 },
+            decoder: { readers: ["code_128_reader", "ean_reader", "qr_reader"] },
             locate: true
-        }, function(result) {
+        }, result => {
             if (result && result.codeResult && !qrCodigoDetectado) {
                 const code = result.codeResult.code;
                 if (code) {
                     qrCodigoDetectado = true;
-                    console.log('📦 QR detectado:', code);
-                    document.getElementById('scanner-status').textContent = '✅ QR detectado: ' + code;
-                    if (navigator.vibrate) navigator.vibrate(200);
                     buscarProductoPorQR(code);
-                    detenerQREscanner();
                 }
             }
         });
     }
 
-    // ventas/crear.html - Reemplazar la función buscarProductoPorQR
-
-function buscarProductoPorQR(codigo) {
-    document.getElementById('scanner-status').textContent = 'Buscando producto...';
-    
-    fetch(`/ventas/api/buscar-qr/?codigo=${encodeURIComponent(codigo)}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // ==========================================
-                // VENTA RÁPIDA: Procesar inmediatamente
-                // ==========================================
-                // 1. Agregar a la tabla visual
-                agregarProducto(data.id, 1, data.nombre, data.precio);
-                document.getElementById('scanner-status').textContent = `✅ Producto agregado: ${data.nombre}`;
-                
-                // 2. FINALIZAR VENTA AUTOMÁTICAMENTE
-                setTimeout(() => {
-                    // Obtener el producto de la lista
-                    const producto = productosSeleccionados.find(p => p.id === data.id);
-                    if (producto) {
-                        // Enviar venta al servidor
-                        const form = document.getElementById('form-venta');
-                        // Limpiar campos ocultos anteriores
-                        form.querySelectorAll('input[name="producto_id[]"]').forEach(el => el.remove());
-                        form.querySelectorAll('input[name="cantidad[]"]').forEach(el => el.remove());
-                        form.querySelectorAll('input[name="precio[]"]').forEach(el => el.remove());
-                        
-                        // Agregar el producto actual
-                        const inputId = document.createElement('input');
-                        inputId.type = 'hidden';
-                        inputId.name = 'producto_id[]';
-                        inputId.value = producto.id;
-                        form.appendChild(inputId);
-                        
-                        const inputCantidad = document.createElement('input');
-                        inputCantidad.type = 'hidden';
-                        inputCantidad.name = 'cantidad[]';
-                        inputCantidad.value = producto.cantidad;
-                        form.appendChild(inputCantidad);
-                        
-                        const inputPrecio = document.createElement('input');
-                        inputPrecio.type = 'hidden';
-                        inputPrecio.name = 'precio[]';
-                        inputPrecio.value = producto.precio;
-                        form.appendChild(inputPrecio);
-                        
-                        // Enviar el formulario automáticamente
-                        form.submit();
-                    }
-                }, 500); // Esperar medio segundo para mostrar el toast
-                
-                // Cerrar escáner
-                setTimeout(() => {
-                    document.getElementById('scanner-container').style.display = 'none';
-                    qrVisible = false;
-                    document.getElementById('scanner-overlay').style.display = 'none';
-                }, 1500);
-                
-            } else {
-                document.getElementById('scanner-status').textContent = '❌ ' + data.message;
-                mostrarToast('❌ ' + data.message);
-                qrCodigoDetectado = false;
-                // Reactivar escáner para seguir escaneando
-                setTimeout(() => {
-                    qrCodigoDetectado = false;
-                    if (!qrScannerRunning) {
-                        const cameraId = document.getElementById('start-qr-scanner').dataset.cameraId;
-                        if (cameraId) iniciarQREscanner(cameraId);
-                    }
-                }, 1000);
-            }
-        })
-        .catch(error => {
-            document.getElementById('scanner-status').textContent = '❌ Error: ' + error.message;
-            mostrarToast('❌ Error al buscar producto');
-            qrCodigoDetectado = false;
-        });
-}
+    function buscarProductoPorQR(codigo) {
+        fetch(`/ventas/api/buscar-qr/?codigo=${encodeURIComponent(codigo)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    agregarProducto(data.id, 1, data.nombre, data.precio, data.unidad_medida);
+                    setTimeout(() => qrCodigoDetectado = false, 1500);
+                } else {
+                    mostrarToast('[X] No encontrado');
+                    setTimeout(() => qrCodigoDetectado = false, 1500);
+                }
+            });
+    }
 
     function detenerQREscanner() {
         qrScannerRunning = false;
-        qrCodigoDetectado = false;
-        
-        if (qrScanInterval) {
-            clearInterval(qrScanInterval);
-            qrScanInterval = null;
-        }
-        
-        if (qrStream) {
-            qrStream.getTracks().forEach(track => track.stop());
-            qrStream = null;
-        }
-        
-        const video = document.getElementById('scanner-video');
-        video.srcObject = null;
-        video.pause();
-        
+        if (qrScanInterval) clearInterval(qrScanInterval);
+        if (qrStream) qrStream.getTracks().forEach(t => t.stop());
+        document.getElementById('scanner-video').srcObject = null;
         document.getElementById('start-qr-scanner').disabled = false;
         document.getElementById('stop-qr-scanner').disabled = true;
-        document.getElementById('scanner-overlay').style.display = 'none';
-        
-        document.getElementById('scanner-status').textContent = '⏹️ Escáner detenido';
-        console.log('⏹️ Escáner QR detenido');
+        document.getElementById('scanner-overlay').classList.add('hidden');
     }
 
     document.getElementById('stop-qr-scanner').addEventListener('click', detenerQREscanner);
-
-    // ==========================================
-    // ENTRADA MANUAL QR
-    // ==========================================
-    document.getElementById('manual-qr-input-btn').addEventListener('click', function() {
-        const div = document.getElementById('manual-qr-input');
-        if (div.style.display === 'none' || div.style.display === '') {
-            div.style.display = 'block';
-            document.getElementById('codigo-qr-manual').focus();
-            detenerQREscanner();
-        } else {
-            div.style.display = 'none';
-        }
+    document.getElementById('buscar-qr-manual').addEventListener('click', () => {
+        const val = document.getElementById('codigo-qr-manual').value.trim();
+        if (val) { buscarProductoPorQR(val); document.getElementById('codigo-qr-manual').value = ''; }
     });
-
-    document.getElementById('buscar-qr-manual').addEventListener('click', function() {
-        const codigo = document.getElementById('codigo-qr-manual').value.trim();
-        if (codigo) {
-            buscarProductoPorQR(codigo);
-            document.getElementById('codigo-qr-manual').value = '';
-            document.getElementById('manual-qr-input').style.display = 'none';
-        } else {
-            alert('Por favor ingresa un código QR');
-        }
-    });
-
-    document.getElementById('codigo-qr-manual').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            document.getElementById('buscar-qr-manual').click();
-        }
-    });
-
-    // ==========================================
-    // AUTOCOMPLETE CON TECLAS
-    // ==========================================
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            const activeElement = document.activeElement;
-            if (activeElement.id === 'id_producto' || activeElement.id === 'id_cantidad') {
-                e.preventDefault();
-                agregarProducto();
-            }
-        }
-    });
-
-    // ==========================================
-    // INICIALIZAR
-    // ==========================================
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('stop-qr-scanner').disabled = true;
-        document.getElementById('manual-qr-input').style.display = 'none';
-        document.getElementById('scanner-container').style.display = 'none';
-        document.getElementById('scanner-overlay').style.display = 'none';
-        
-        // Si hay producto seleccionado desde URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const productoId = urlParams.get('producto');
-        if (productoId) {
-            const select = document.getElementById('id_producto');
-            for (let option of select.options) {
-                if (option.value == productoId) {
-                    select.value = productoId;
-                    break;
-                }
-            }
-            actualizarPrecio();
-            document.getElementById('id_cantidad').value = 1;
-            agregarProducto();
-        }
-    });
-
-    window.addEventListener('beforeunload', function() {
-        detenerQREscanner();
-    });
+    document.getElementById('codigo-qr-manual').addEventListener('keypress', e => { if (e.key === 'Enter') document.getElementById('buscar-qr-manual').click(); });
+    document.getElementById('id_cantidad').addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); agregarProducto(); } });
 </script>
 {% endblock %}

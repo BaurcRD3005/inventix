@@ -71,8 +71,12 @@ def producto_crear(request):
     if request.method == 'POST':
         form = ProductoForm(request.POST, request.FILES)
         if form.is_valid():
-            producto = form.save()
-            messages.success(request, f'✅ Producto "{producto.nombre}" registrado exitosamente.')
+            # commit=False para manipular el objeto antes de guardarlo en base de datos
+            producto = form.save(commit=False)
+            producto.cantidad = 0  # El stock inicial siempre empieza en 0
+            producto.save()
+            
+            messages.success(request, f'✅ Producto "{producto.nombre}" registrado exitosamente. (Stock inicial: 0)')
             
             if request.GET.get('from_scanner'):
                 return redirect('productos:crear_escaner')
@@ -89,7 +93,7 @@ def producto_crear(request):
         'accion': 'Registrar',
         'codigo_precargado': codigo_precargado,
         'from_scanner': bool(request.GET.get('from_scanner')),
-        'usar_escaner': usar_escaner,  # Para activar el escáner en el template
+        'usar_escaner': usar_escaner,
     }
     context.update(get_user_context(request))
     

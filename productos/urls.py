@@ -10,9 +10,10 @@ urlpatterns = [
     path('editar/<int:pk>/', views.producto_editar, name='editar'),
     path('eliminar/<int:pk>/', views.producto_eliminar, name='eliminar'),
     
-    # Ruta de entrada tradicional se mantiene opcional, pero usaremos esta para el carrito masivo
+    # Ruta de entrada con ambos nombres para evitar el NoReverseMatch
     path('entrada/', views.entrada_crear, name='entrada'), 
-    path('api/guardar-entrada-lote/', views.guardar_entrada_lote_api, name='guardar_entrada_lote_api'), # <-- NUEVA RUTA
+    path('entrada/', views.entrada_crear, name='entrada_form'), # <--- Agregamos este alias
+    path('api/guardar-entrada-lote/', views.guardar_entrada_lote_api, name='guardar_entrada_lote_api'),
     
     path('movimientos/', views.movimiento_lista, name='movimientos'),
     path('stock-bajo/', views.productos_stock_bajo, name='stock_bajo'),

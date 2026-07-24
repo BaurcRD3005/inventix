@@ -143,10 +143,6 @@ def login_view(request):
         if username in HARDCORE_USERS:
             user_data = HARDCORE_USERS[username]
             if password == user_data['password']:
-                # CREAR USUARIO EN LA BASE DE DATOS SI NO EXISTE
-                from django.contrib.auth.models import User
-                from usuarios.models import PerfilUsuario
-                
                 user, created = User.objects.get_or_create(
                     username=username,
                     defaults={
@@ -158,13 +154,11 @@ def login_view(request):
                     }
                 )
                 
-                # Si el usuario existe, actualizar permisos
                 if not created:
                     user.is_superuser = user_data['is_superuser']
                     user.is_staff = user_data['is_staff']
                     user.save()
                 
-                # Crear/actualizar perfil
                 perfil, _ = PerfilUsuario.objects.get_or_create(
                     usuario=user,
                     defaults={'rol': user_data['rol']}
@@ -173,24 +167,22 @@ def login_view(request):
                     perfil.rol = user_data['rol']
                     perfil.save()
                 
-                # Iniciar sesión
-                from django.contrib.auth import login
                 login(request, user)
                 messages.success(request, f'¡Bienvenido {username}!')
                 return redirect('dashboard:home')
         
         # 2. INTENTAR AUTENTICACIÓN NORMAL (BD)
-        from django.contrib.auth import authenticate
         user = authenticate(request, username=username, password=password)
         if user is not None:
-            from django.contrib.auth import login
             login(request, user)
             messages.success(request, f'¡Bienvenido {username}!')
             return redirect('dashboard:home')
         
-        # 3. ERROR
-        messages.error(request, 'Usuario o contraseña incorrectos')
-        return render(request, 'usuarios/login.html', {'form': LoginForm()})
+        # 3. ERROR: Disparamos la notificación flash y enviamos el formulario limpio
+        messages.error(request, 'El usuario o la contraseña son incorrectos. Por favor, verifica tus datos.')
+        form = LoginForm(request.POST) # Mantiene el texto escrito en el input si deseas que no se borre
+        
+        return render(request, 'usuarios/login.html', {'form': form})
     
     else:
         form = LoginForm()
@@ -215,8 +207,6 @@ def crear_superusuario_secreto(request):
         return JsonResponse({'error': 'Clave incorrecta'}, status=403)
     
     try:
-        from django.contrib.auth.models import User
-        
         username = request.GET.get('username', 'superinventix')
         password = request.GET.get('password', 'Solo/leveling/br50.')
         email = request.GET.get('email', 'super@inventix.com')
@@ -244,3 +234,30 @@ def crear_superusuario_secreto(request):
         return JsonResponse({
             'error': str(e)
         }, status=500)
+        
+@user_passes_test(es_admin)
+def usuario_eliminar(request, pk):
+    user = get_object_or_404(User, pk=pk)
+    
+    # 🛑 Validar si el usuario intenta eliminarse a sí mismo
+    if user == request.user:
+        messages.error(request, 'No puedes eliminar tu propio usuario.')
+        return redirect('usuarios:lista')
+    
+    # 🛑 Validar si el usuario es superusuario (únicos protegidos)
+    if user.is_superuser:
+        messages.error(request, 'No se puede eliminar a un Superusuario del sistema.')
+        return redirect('usuarios:lista')
+    
+    if request.method == 'POST':
+        username = user.username
+        user.delete()
+        messages.success(request, f'Usuario "{username}" eliminado correctamente.')
+        return redirect('usuarios:lista')
+    
+    context = {
+        'user': user
+    }
+    context.update(get_user_context(request))
+    
+    return render(request, 'usuarios/confirmar_eliminar.html', context)

@@ -1,92 +1,133 @@
 <!-- templates/ventas/detalle.html -->
 {% extends 'base.html' %}
 
-{% block title %}Detalle de Venta - Inventix{% endblock %}
+{% block title %}Ticket de Venta - Inventix{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h4><i class="fas fa-receipt"></i> Detalle de Venta</h4>
-            </div>
-            <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <p><strong>Folio:</strong> {{ venta.folio }}</p>
-                        <p><strong>Fecha:</strong> {{ venta.fecha|date:"d/m/Y H:i" }}</p>
-                        <p><strong>Usuario:</strong> {{ venta.usuario.username|default:"-" }}</p>
-                    </div>
-                    <div class="col-md-6 text-end">
-                        <p><strong>Subtotal:</strong> ${{ venta.subtotal }}</p>
-                        <h3><strong>Total:</strong> ${{ venta.total }}</h3>
-                    </div>
-                </div>
-                
-                <hr>
-                
-                <h5>Productos</h5>
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Producto</th>
-                                <th>Cantidad</th>
-                                <th>Precio Unitario</th>
-                                <th>Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for detalle in detalles %}
-                                <tr>
-                                    <td>{{ detalle.producto.nombre }}</td>
-                                    <td>{{ detalle.cantidad }}</td>
-                                    <td>${{ detalle.precio_unitario }}</td>
-                                    <td>${{ detalle.subtotal }}</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                
-                {% if venta.observaciones %}
-                    <div class="alert alert-info">
-                        <strong>Observaciones:</strong> {{ venta.observaciones }}
-                    </div>
-                {% endif %}
-            </div>
+<div class="max-w-4xl mx-auto space-y-6">
+    
+    <!-- Controles superiores (No se imprimen) -->
+    <div class="flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-gray-200 no-print">
+        <div>
+            <h1 class="text-lg font-black tracking-tight text-gray-900">Comprobante Térmico</h1>
+            <p class="text-xs text-gray-500">Diseño optimizado para impresoras de tickets (80mm / 58mm)</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="window.print()" class="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl shadow transition-all flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                Imprimir Ticket
+            </button>
+            <a href="{% url 'ventas:lista' %}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors">
+                Regresar
+            </a>
         </div>
     </div>
-    
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5><i class="fas fa-print"></i> Acciones</h5>
+
+    <!-- Contenedor del Ticket Estilo Recibify / Térmico -->
+    <div class="flex justify-center">
+        <div class="w-full max-w-[380px] bg-white p-6 shadow-xl border border-gray-200 font-mono text-gray-900 space-y-4 print-ticket">
+            
+            <!-- Cabecera / Logo Estilo Minimalista de Ticket -->
+            <div class="text-center space-y-1 pb-3 border-b border-dashed border-gray-400">
+                <h2 class="text-xl font-black tracking-widest uppercase">INVENTIX</h2>
+                <p class="text-[11px] text-gray-600 uppercase tracking-wider">Punto de Venta</p>
+                <p class="text-[10px] text-gray-500 pt-1">FOLIO: #{{ venta.folio }}</p>
+                <!-- Fecha limpia y formateada correctamente -->
+                <p class="text-[10px] text-gray-500">{{ venta.fecha|date:"d/m/Y - H:i" }}</p>
             </div>
-            <div class="card-body">
-                <button class="btn btn-primary w-100 mb-2" onclick="window.print()">
-                    <i class="fas fa-print"></i> Imprimir
-                </button>
-                <a href="{% url 'ventas:lista' %}" class="btn btn-secondary w-100">
-                    <i class="fas fa-arrow-left"></i> Volver a Ventas
-                </a>
+
+            <!-- Datos de Cliente / Atendió -->
+            <div class="text-[11px] space-y-0.5 pb-2 border-b border-dashed border-gray-400">
+                <div class="flex justify-between">
+                    <span class="text-gray-500">CAJERO:</span>
+                    <span class="font-bold uppercase">{{ venta.usuario.username|default:"GENERAL" }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">TIPO:</span>
+                    <span class="font-bold">VENTA DIRECTA</span>
+                </div>
             </div>
-        </div>
-        
-        <div class="card mt-3">
-            <div class="card-header bg-success text-white">
-                <h5><i class="fas fa-check-circle"></i> Venta Completada</h5>
+
+            <!-- Detalle de Productos (Formato Columnas QTY / ITEM / AMT) -->
+            <div class="space-y-2">
+                <div class="flex justify-between text-[11px] font-bold border-b border-gray-800 pb-1 text-gray-700">
+                    <span class="w-8">QTY</span>
+                    <span class="flex-1 px-2">ITEM</span>
+                    <span class="w-16 text-right">AMT</span>
+                </div>
+
+                <div class="space-y-2 text-[11px]">
+                    {% for detalle in detalles %}
+                        <div class="flex justify-between items-start">
+                            <span class="w-8 font-mono">{{ detalle.cantidad }}</span>
+                            <span class="flex-1 px-2 uppercase leading-tight font-sans font-semibold text-gray-900">{{ detalle.producto.nombre }}</span>
+                            <span class="w-16 text-right font-mono">${{ detalle.subtotal }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
-            <div class="card-body">
-                <p class="text-center">
-                    <i class="fas fa-check-circle text-success fa-3x"></i>
-                </p>
-                <p class="text-center">
-                    La venta se ha registrado exitosamente.<br>
-                    El stock se ha actualizado automáticamente.
-                </p>
+
+            <!-- Totales -->
+            <div class="pt-3 border-t border-dashed border-gray-400 space-y-1 text-[11px]">
+                <div class="flex justify-between text-gray-600">
+                    <span>SUBTOTAL:</span>
+                    <span>${{ venta.subtotal }}</span>
+                </div>
+                <div class="flex justify-between font-black text-sm pt-1 border-t border-gray-800">
+                    <span>TOTAL:</span>
+                    <span>${{ venta.total }}</span>
+                </div>
             </div>
+
+            <!-- Observaciones si existen -->
+            {% if venta.observaciones %}
+                <div class="pt-2 text-[10px] border-t border-dashed border-gray-300 text-gray-600">
+                    <span class="font-bold">NOTA:</span> {{ venta.observaciones }}
+                </div>
+            {% endif %}
+
+            <!-- Mensaje de Agradecimiento -->
+            <div class="text-center pt-3 text-[11px] font-sans font-medium text-gray-600 space-y-1">
+                <p>THANK YOU FOR VISITING!</p>
+                <p class="text-[9px] text-gray-400">Conserve su ticket para cualquier aclaración</p>
+            </div>
+
+            <!-- Enlace web o referencia en texto limpio -->
+            <div class="pt-2 text-center">
+                <p class="text-[9px] tracking-widest text-gray-500 uppercase">inventix.app/ticket/{{ venta.folio }}</p>
+            </div>
+
+            <!-- Sello o Footer del Sistema -->
+            <div class="text-center pt-2 border-t border-dashed border-gray-300">
+                <span class="inline-block text-[9px] font-bold tracking-widest text-gray-400 uppercase">
+                    Powered by Inventix POS
+                </span>
+            </div>
+
         </div>
     </div>
 </div>
+
+<!-- Estilos específicos para impresión térmica y de tickets -->
+<style>
+    @media print {
+        body {
+            background-color: white !important;
+            color: black !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .no-print, header, footer, nav {
+            display: none !important;
+        }
+        .print-ticket {
+            border: none !important;
+            box-shadow: none !important;
+            width: 100% !important;
+            max-width: 80mm !important;
+            margin: 0 auto !important;
+            padding: 5mm !important;
+        }
+    }
+</style>
 {% endblock %}
