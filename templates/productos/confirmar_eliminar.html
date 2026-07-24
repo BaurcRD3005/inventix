@@ -4,35 +4,56 @@
 {% block title %}Eliminar Producto - Inventix{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card border-danger">
-            <div class="card-header bg-danger text-white">
-                <h4><i class="fas fa-exclamation-triangle"></i> Confirmar Eliminación</h4>
+<div class="max-w-xl mx-auto space-y-6">
+    
+    <!-- Tarjeta de Confirmación de Peligro / Advertencia Estilo Tailwind -->
+    <div class="bg-white rounded-2xl shadow-sm border border-red-100 overflow-hidden">
+        
+        <!-- Encabezado Rojo Alerta -->
+        <div class="bg-gradient-to-r from-red-600 to-rose-600 p-6 text-white flex items-center gap-4">
+            <div class="p-3 bg-white/10 rounded-xl">
+                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
             </div>
-            <div class="card-body">
-                <p class="lead">¿Estás seguro de que deseas eliminar el siguiente producto?</p>
-                <div class="alert alert-warning">
-                    <strong>{{ producto.nombre }}</strong>
-                    <br>
-                    <small>Código: {{ producto.codigo_barras|default:"N/A" }}</small>
-                    <br>
-                    <small>Cantidad: {{ producto.cantidad }} unidades</small>
+            <div>
+                <h1 class="text-lg font-black tracking-tight">Confirmar Eliminación</h1>
+                <p class="text-xs text-red-100">Esta acción es irreversible y borrará los datos del registro</p>
+            </div>
+        </div>
+
+        <!-- Cuerpo del Formulario -->
+        <div class="p-6 sm:p-8 space-y-6">
+            <p class="text-sm font-medium text-gray-700">
+                ¿Estás completamente segura de que deseas eliminar el siguiente producto de tu inventario?
+            </p>
+
+            <!-- Resumen del producto a eliminar -->
+            <div class="bg-red-50/50 border border-red-200 rounded-2xl p-4 space-y-2">
+                <div class="font-black text-gray-900 text-base">{{ producto.nombre }}</div>
+                <div class="grid grid-cols-2 gap-2 text-xs text-gray-600 pt-1 border-t border-red-100">
+                    <div>Código: <span class="font-bold text-gray-800">{{ producto.codigo_barras|default:"N/A" }}</span></div>
+                    <div>Stock Actual: <span class="font-bold text-gray-800">{{ producto.cantidad }} unidades</span></div>
                 </div>
-                <p class="text-danger">
-                    <i class="fas fa-exclamation-circle"></i> Esta acción no se puede deshacer.
-                </p>
-                
-                <form method="post">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash"></i> Sí, eliminar
-                    </button>
-                    <a href="{% url 'productos:lista' %}" class="btn btn-secondary">
-                        <i class="fas fa-times"></i> Cancelar
-                    </a>
-                </form>
             </div>
+
+            <!-- Advertencia breve -->
+            <div class="flex items-center gap-2 text-xs text-red-600 font-bold">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Los registros de ventas asociados a este artículo también podrían verse afectados.
+            </div>
+
+            <!-- Botones de Acción -->
+            <form method="post" class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                {% csrf_token %}
+                <a href="{% url 'productos:lista' %}" class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-all shadow-sm">
+                    Cancelar
+                </a>
+                <button type="submit" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-red-600/30 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    Sí, eliminar producto
+                </button>
+            </form>
         </div>
     </div>
 </div>
