@@ -433,8 +433,26 @@
         });
     }
 
+    function detenerQREscanner() {
+        if (qrStream) {
+            qrStream.getTracks().forEach(track => track.stop());
+            qrStream = null;
+        }
+        if (qrScanInterval) clearInterval(qrScanInterval);
+        qrScannerRunning = false;
+        qrCodigoDetectado = false;
+        const startBtn = document.getElementById('start-qr-scanner');
+        const stopBtn = document.getElementById('stop-qr-scanner');
+        if (startBtn) startBtn.disabled = false;
+        if (stopBtn) stopBtn.disabled = true;
+        const overlay = document.getElementById('scanner-overlay');
+        if (overlay) overlay.classList.add('hidden');
+    }
+
+    document.getElementById('stop-qr-scanner').addEventListener('click', detenerQREscanner);
+
     function escanearQR() {
-        if (!qrScannerRunning) return;
+        if (!qrScannerRunning || qrCodigoDetectado) return;
         const video = document.getElementById('scanner-video');
         const canvas = document.getElementById('scanner-canvas');
         if (!video.videoWidth) return;
@@ -453,42 +471,45 @@
                 const code = result.codeResult.code;
                 if (code) {
                     qrCodigoDetectado = true;
-                    buscarProductoPorQR(code);
+                    document.getElementById('codigo-qr-manual').value = code;
+                    document.getElementById('buscar-qr-manual').click();
+                    setTimeout(() => { qrCodigoDetectado = false; }, 1500);
                 }
             }
         });
     }
 
-    function buscarProductoPorQR(codigo) {
-        fetch(`/ventas/api/buscar-qr/?codigo=${encodeURIComponent(codigo)}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    agregarProducto(data.id, 1, data.nombre, data.precio, data.unidad_medida);
-                    setTimeout(() => qrCodigoDetectado = false, 1500);
-                } else {
-                    mostrarToast('[X] No encontrado');
-                    setTimeout(() => qrCodigoDetectado = false, 1500);
-                }
-            });
-    }
+    // Búsqueda Manual de Código
+    document.getElementById('buscar-qr-manual').addEventListener('click', function() {
+        const codigo = document.getElementById('codigo-qr-manual').value.trim();
+        if (!codigo) return;
 
-    function detenerQREscanner() {
-        qrScannerRunning = false;
-        if (qrScanInterval) clearInterval(qrScanInterval);
-        if (qrStream) qrStream.getTracks().forEach(t => t.stop());
-        document.getElementById('scanner-video').srcObject = null;
-        document.getElementById('start-qr-scanner').disabled = false;
-        document.getElementById('stop-qr-scanner').disabled = true;
-        document.getElementById('scanner-overlay').classList.add('hidden');
-    }
+        const select = document.getElementById('id_producto');
+        let encontrado = false;
 
-    document.getElementById('stop-qr-scanner').addEventListener('click', detenerQREscanner);
-    document.getElementById('buscar-qr-manual').addEventListener('click', () => {
-        const val = document.getElementById('codigo-qr-manual').value.trim();
-        if (val) { buscarProductoPorQR(val); document.getElementById('codigo-qr-manual').value = ''; }
+        for (let i = 1; i < select.options.length; i++) {
+            const opt = select.options[i];
+            if (opt.value === codigo || opt.text.toLowerCase().includes(codigo.toLowerCase())) {
+                select.value = opt.value;
+                actualizarDatosProducto();
+                agregarProducto();
+                document.getElementById('codigo-qr-manual').value = '';
+                encontrado = true;
+                break;
+            }
+        }
+
+        if (!encontrado) {
+            alert(`No se encontró ningún producto con el código o texto: "${codigo}"`);
+            document.getElementById('codigo-qr-manual').value = '';
+        }
     });
-    document.getElementById('codigo-qr-manual').addEventListener('keypress', e => { if (e.key === 'Enter') document.getElementById('buscar-qr-manual').click(); });
-    document.getElementById('id_cantidad').addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); agregarProducto(); } });
+
+    document.getElementById('codigo-qr-manual').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('buscar-qr-manual').click();
+        }
+    });
 </script>
 {% endblock %}
